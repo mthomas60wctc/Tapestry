@@ -50,6 +50,9 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { createMockLibraryData, getMockWorkspaceData } from 'src/data/mockLibraryData'
+
 const graphControls = [
   'Zoom In / Out',
   'Filter by Node Type',
@@ -57,13 +60,30 @@ const graphControls = [
   'Cluster by Type',
 ]
 
-const graphNodes = [
-  { id: 'n1', label: 'Ned' },
-  { id: 'n2', label: 'Jon' },
-  { id: 'n3', label: 'Catelyn' },
-  { id: 'n4', label: 'Robb' },
-  { id: 'n5', label: 'Sansa' },
-]
+const { books: mockBooks } = createMockLibraryData()
+const selectedWorkspace = computed(() => getMockWorkspaceData(mockBooks[0]?.id))
 
-const nodeDetails = ['Name + Type', 'Description', 'Connected Nodes']
+const graphNodes = computed(() => {
+  const characters = selectedWorkspace.value?.characters || []
+
+  return characters.map((character) => ({
+    id: character.id,
+    label: character.name,
+  }))
+})
+
+const nodeDetails = computed(() => {
+  const [character] = selectedWorkspace.value?.characters || []
+
+  if (!character) {
+    return ['No character selected']
+  }
+
+  return [
+    character.name,
+    `Role: ${character.role}`,
+    character.description,
+    `Tags: ${character.tags.join(', ')}`,
+  ]
+})
 </script>

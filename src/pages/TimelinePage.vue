@@ -49,13 +49,39 @@
 </template>
 
 <script setup>
-const timelineEvents = [
-  { title: 'Event 1', subtitle: 'Chapter 1', description: 'Opening story beat and setup.' },
-  { title: 'Event 2', subtitle: 'Chapter 3', description: 'Major conflict begins.' },
-  { title: 'Event 3', subtitle: 'Chapter 6', description: 'Character relationship shifts.' },
-  { title: 'Event 4', subtitle: 'Chapter 9', description: 'Turning point for the arc.' },
-]
+import { computed } from 'vue'
+import { createMockLibraryData, getMockWorkspaceData } from 'src/data/mockLibraryData'
 
-const selectedEventDetails = ['Summary', 'Connected Characters', 'Connected Settings']
-const quickJumps = ['Previous Major Event', 'Next Major Event']
+const { books: mockBooks } = createMockLibraryData()
+const selectedWorkspace = computed(() => getMockWorkspaceData(mockBooks[0]?.id))
+
+const timelineEvents = computed(() => {
+  const events = selectedWorkspace.value?.events || []
+
+  return events.map((event) => ({
+    title: event.title,
+    subtitle: event.chapterTitle || `Chapter ${event.chapter ?? 'N/A'}`,
+    description: event.description,
+  }))
+})
+
+const selectedEventDetails = computed(() => {
+  const [event] = selectedWorkspace.value?.events || []
+
+  if (!event) {
+    return ['No event selected']
+  }
+
+  return [
+    `${event.title}`,
+    `Chapter ${event.chapter ?? 'N/A'}${event.chapterTitle ? ` • ${event.chapterTitle}` : ''}`,
+    `Characters involved: ${event.characterIds.length}`,
+    `Settings involved: ${event.settingIds.length}`,
+  ]
+})
+
+const quickJumps = computed(() => {
+  const events = selectedWorkspace.value?.events || []
+  return events.slice(0, 2).map((event) => event.title)
+})
 </script>
