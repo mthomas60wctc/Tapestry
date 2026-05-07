@@ -10,6 +10,15 @@
 
         <q-space />
 
+        <q-btn
+          flat
+          dense
+          round
+          :icon="isDarkMode ? 'dark_mode' : 'light_mode'"
+          :title="isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'"
+          @click="toggleDarkMode"
+        />
+
         <q-chip outline color="primary" text-color="primary" icon="account_circle">Account</q-chip>
       </q-toolbar>
 
@@ -39,4 +48,43 @@
   </q-layout>
 </template>
 
-<script setup></script>
+<script setup>
+import { computed, onMounted, ref, watch } from 'vue'
+import { useQuasar } from 'quasar'
+
+const $q = useQuasar()
+const darkMode = ref(false)
+
+const isDarkMode = computed(() => darkMode.value)
+
+function applyDarkMode(enabled) {
+  darkMode.value = enabled
+  $q.dark.set(enabled)
+
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem('tapestry-dark-mode', String(enabled))
+  }
+}
+
+function toggleDarkMode() {
+  applyDarkMode(!darkMode.value)
+}
+
+onMounted(() => {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const storedValue = window.localStorage.getItem('tapestry-dark-mode')
+  if (storedValue !== null) {
+    applyDarkMode(storedValue === 'true')
+    return
+  }
+
+  applyDarkMode($q.dark.isActive)
+})
+
+watch(darkMode, (enabled) => {
+  $q.dark.set(enabled)
+})
+</script>

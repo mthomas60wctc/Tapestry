@@ -525,11 +525,288 @@ function createMistbornWorkspace() {
   return { book, characters, events, settings, relationships }
 }
 
+function createDuneWorkspace() {
+  const book = new Book({
+    id: 'book-004',
+    title: 'Dune',
+    author: 'Frank Herbert',
+    series: 'Dune Chronicles',
+    seriesOrder: 1,
+    genre: 'Science Fiction',
+    status: 'completed',
+    description: 'A young man must navigate politics, religion, and ecology on a desert planet.',
+    chapters: 68,
+    tags: ['politics', 'religion', 'desert', 'prophecy'],
+  })
+
+  const characters = [
+    new Character({
+      id: 'char-paul-atreides',
+      bookId: book.id,
+      name: 'Paul Atreides',
+      aliases: ["Muad'Dib"],
+      role: 'protagonist',
+      status: 'active',
+      description: "Duke's son forced into a dangerous political game on Arrakis.",
+      background: 'Trained in Bene Gesserit ways and military strategy.',
+      tags: ['Atreides', 'prophecy', 'leadership'],
+    }),
+    new Character({
+      id: 'char-lady-jessica',
+      bookId: book.id,
+      name: 'Lady Jessica',
+      aliases: ['Jessica'],
+      role: 'supporting',
+      status: 'active',
+      description: "Paul's mother and a Bene Gesserit member.",
+      tags: ['Bene Gesserit', 'wisdom'],
+    }),
+    new Character({
+      id: 'char-leto-atreides',
+      bookId: book.id,
+      name: 'Leto Atreides',
+      aliases: ['Duke Leto'],
+      role: 'supporting',
+      status: 'deceased',
+      description: "Paul's father and Duke of House Atreides.",
+      tags: ['Atreides', 'nobility', 'honor'],
+    }),
+  ]
+
+  const settings = [
+    new Setting({
+      id: 'setting-arrakis',
+      bookId: book.id,
+      name: 'Arrakis',
+      type: 'planet',
+      description: 'Desert planet essential to the galactic economy, source of spice.',
+      ruler: 'Variable',
+      tags: ['desert', 'spice', 'ecology'],
+    }),
+    new Setting({
+      id: 'setting-caladan',
+      bookId: book.id,
+      name: 'Caladan',
+      type: 'planet',
+      description: 'Water-rich homeworld of House Atreides.',
+      ruler: 'House Atreides',
+      tags: ['water', 'home'],
+    }),
+  ]
+
+  const events = [
+    new Event({
+      id: 'event-dune-arrival',
+      bookId: book.id,
+      title: 'Arrival on Arrakis',
+      chapter: 1,
+      description: 'House Atreides arrives at Arrakis to take control of spice production.',
+      tags: ['arrival', 'politics'],
+    }),
+    new Event({
+      id: 'event-dune-betrayal',
+      bookId: book.id,
+      title: 'The Betrayal',
+      chapter: 18,
+      description: 'House Harkonnen orchestrates the downfall of House Atreides.',
+      tags: ['betrayal', 'war'],
+    }),
+  ]
+
+  const relationships = [
+    new Relationship({
+      id: 'rel-paul-jessica',
+      bookId: book.id,
+      sourceId: characters[0].id,
+      sourceType: 'character',
+      targetId: characters[1].id,
+      targetType: 'character',
+      relationshipType: 'family',
+      description: 'Mother and son bond amid political turmoil.',
+      strength: 'strong',
+      bidirectional: true,
+    }),
+  ]
+
+  return { book, characters, events, settings, relationships }
+}
+
+function createDungeonCrawlerCarlWorkspace() {
+  const book = new Book({
+    id: 'book-005',
+    title: 'Dungeon Crawler Carl',
+    author: 'Matt Dinniman',
+    series: 'Dungeon Crawler Carl',
+    seriesOrder: 1,
+    genre: 'LitRPG',
+    status: 'in-progress',
+    description:
+      'A man and his cat navigate a deadly dungeon with nothing but humor and determination.',
+    chapters: 150,
+    tags: ['dungeon', 'comedy', 'survival', 'litrpg'],
+  })
+
+  const characters = [
+    new Character({
+      id: 'char-carl',
+      bookId: book.id,
+      name: 'Carl',
+      aliases: ['Carl Aun-Josef'],
+      role: 'protagonist',
+      status: 'active',
+      description: 'A man trapped in a dungeon with his cat. Uses humor and cunning to survive.',
+      background: 'Former human dealing with dungeon reality.',
+      tags: ['survival', 'humor', 'human'],
+    }),
+    new Character({
+      id: 'char-regina',
+      bookId: book.id,
+      name: 'Regina',
+      aliases: ['Donut', 'Queen Regent'],
+      role: 'supporting',
+      status: 'active',
+      description: "Carl's cat who has become a powerful dungeon entity.",
+      tags: ['cat', 'power', 'companion'],
+    }),
+  ]
+
+  const settings = [
+    new Setting({
+      id: 'setting-dungeon',
+      bookId: book.id,
+      name: 'The Dungeon',
+      type: 'dungeon',
+      description: 'An endless series of floors filled with monsters and treasures.',
+      ruler: 'Unknown',
+      tags: ['dungeon', 'maze', 'danger'],
+    }),
+  ]
+
+  const events = [
+    new Event({
+      id: 'event-dcc-start',
+      bookId: book.id,
+      title: 'Descent Begins',
+      chapter: 1,
+      description: 'Carl wakes up in the dungeon and must adapt to dungeon rules.',
+      tags: ['start', 'adaptation'],
+    }),
+  ]
+
+  const relationships = [
+    new Relationship({
+      id: 'rel-carl-regina',
+      bookId: book.id,
+      sourceId: characters[0].id,
+      sourceType: 'character',
+      targetId: characters[1].id,
+      targetType: 'character',
+      relationshipType: 'companionship',
+      description: 'Carl and Regina navigate the dungeon together.',
+      strength: 'strong',
+      bidirectional: true,
+    }),
+  ]
+
+  return { book, characters, events, settings, relationships }
+}
+
+function createFoundationWorkspace() {
+  const book = new Book({
+    id: 'book-006',
+    title: 'Foundation',
+    author: 'Isaac Asimov',
+    series: 'Foundation',
+    seriesOrder: 1,
+    genre: 'Science Fiction',
+    status: 'completed',
+    description:
+      'A mathematician predicts the fall of a galactic empire and creates a foundation to preserve knowledge.',
+    chapters: 15,
+    tags: ['psychohistory', 'empire', 'knowledge', 'future'],
+  })
+
+  const characters = [
+    new Character({
+      id: 'char-hari-seldon',
+      bookId: book.id,
+      name: 'Hari Seldon',
+      aliases: ['The Mathematician'],
+      role: 'protagonist',
+      status: 'deceased',
+      description: 'Creator of psychohistory and founder of the Foundation.',
+      background: "Brilliant mathematician who foresees the empire's collapse.",
+      tags: ['genius', 'foresight', 'foundation'],
+    }),
+    new Character({
+      id: 'char-gaal-dornick',
+      bookId: book.id,
+      name: 'Gaal Dornick',
+      aliases: ['Gaal'],
+      role: 'supporting',
+      status: 'active',
+      description: "A young mathematician drawn into Seldon's grand plan.",
+      tags: ['youth', 'idealism', 'mathematics'],
+    }),
+  ]
+
+  const settings = [
+    new Setting({
+      id: 'setting-trantor',
+      bookId: book.id,
+      name: 'Trantor',
+      type: 'planet',
+      description: 'Capital of the Galactic Empire, a completely urbanized world.',
+      ruler: 'Galactic Empire',
+      tags: ['empire', 'capital', 'urban'],
+    }),
+    new Setting({
+      id: 'setting-terminus',
+      bookId: book.id,
+      name: 'Terminus',
+      type: 'planetary-system',
+      description: 'Remote planet chosen to house the Foundation.',
+      ruler: 'The Foundation',
+      tags: ['foundation', 'knowledge', 'isolated'],
+    }),
+  ]
+
+  const events = [
+    new Event({
+      id: 'event-foundation-founding',
+      bookId: book.id,
+      title: 'Foundation Established',
+      chapter: 3,
+      description: 'The Foundation is established on Terminus to preserve galactic knowledge.',
+      tags: ['founding', 'preservation'],
+    }),
+  ]
+
+  const relationships = [
+    new Relationship({
+      id: 'rel-seldon-dornick',
+      bookId: book.id,
+      sourceId: characters[0].id,
+      sourceType: 'character',
+      targetId: characters[1].id,
+      targetType: 'character',
+      relationshipType: 'mentor',
+      description: "Seldon guides Dornick into the Foundation's purpose.",
+      strength: 'medium',
+    }),
+  ]
+
+  return { book, characters, events, settings, relationships }
+}
+
 export function createMockLibraryData() {
   const workspaces = [
     createWesterosWorkspace(),
     createMiddleEarthWorkspace(),
     createMistbornWorkspace(),
+    createDuneWorkspace(),
+    createDungeonCrawlerCarlWorkspace(),
+    createFoundationWorkspace(),
   ]
 
   const books = workspaces.map((workspace, index) => withCover(workspace.book, index))

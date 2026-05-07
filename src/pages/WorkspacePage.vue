@@ -1,91 +1,82 @@
 <template>
-  <div class="q-gutter-md">
-    <q-card bordered flat>
-      <q-card-section class="row q-col-gutter-md items-center">
-        <div class="col-12 col-md-7">
-          <WorkspaceSearch
-            v-model="selectedBookId"
-            :items="bookOptions"
-            placeholder="Type to search books..."
-          />
-        </div>
-        <div class="col-12 col-md-5">
-          <q-input outlined dense label="Filters / Sort / Add Entity" />
-        </div>
-      </q-card-section>
-    </q-card>
+  <div>
+    <div class="row q-col-gutter-md items-center q-mb-md">
+      <div class="col-12 col-md-7">
+        <WorkspaceSearch v-model="selectedBookId" :items="bookOptions" />
+      </div>
+      <div class="col-12 col-md-5">
+        <q-input outlined dense label="Filters / Sort / Add Entity" />
+      </div>
+    </div>
 
-    <q-splitter v-model="splitter" bordered separator-class="bg-grey-4">
-      <template #before>
-        <q-card bordered flat class="full-height">
-          <q-card-section class="text-subtitle1 text-weight-medium">Sidebar Tabs</q-card-section>
-          <q-separator />
-          <q-list separator>
-            <q-item v-for="tab in workspaceTabs" :key="tab">
-              <q-item-section>{{ tab }}</q-item-section>
-            </q-item>
-          </q-list>
-        </q-card>
-      </template>
-
-      <template #after>
-        <div class="q-gutter-md q-pl-md">
-          <div class="row q-col-gutter-md items-stretch">
-            <div class="col-12 col-lg-8">
-              <q-card bordered flat>
-                <q-card-section class="text-subtitle1 text-weight-medium"
-                  >Entity List + Detail</q-card-section
-                >
-                <q-separator />
-                <q-card-section>
-                  <div class="row q-col-gutter-md">
-                    <div class="col-12 col-sm-4">
-                      <q-list bordered separator>
-                        <q-item v-for="item in entityList" :key="item">
-                          <q-item-section>{{ item }}</q-item-section>
-                        </q-item>
-                      </q-list>
-                    </div>
-                    <div class="col-12 col-sm-8">
-                      <q-list bordered separator>
-                        <q-item v-for="item in entityDetails" :key="item">
-                          <q-item-section>{{ item }}</q-item-section>
-                        </q-item>
-                      </q-list>
-                    </div>
-                  </div>
-                </q-card-section>
-              </q-card>
-            </div>
-
-            <div class="col-12 col-lg-4">
-              <q-card bordered flat>
-                <q-card-section class="text-subtitle1 text-weight-medium"
-                  >Related Links</q-card-section
-                >
-                <q-separator />
-                <q-list separator>
-                  <q-item v-for="link in relatedLinks" :key="link">
-                    <q-item-section>{{ link }}</q-item-section>
-                  </q-item>
-                </q-list>
-              </q-card>
-            </div>
-          </div>
+    <div>
+      <div class="row q-col-gutter-md items-stretch">
+        <div class="col-12 col-lg-8">
+          <q-card bordered flat>
+            <q-card-section class="row items-center q-col-gutter-md q-pa-md q-pb-sm">
+              <div class="col">
+                <div class="text-subtitle1 text-weight-medium">Entity List + Detail</div>
+              </div>
+              <div class="col-auto" style="min-width: 200px">
+                <q-select
+                  v-model="selectedEntityType"
+                  :options="entityFilterOptions"
+                  outlined
+                  dense
+                  emit-value
+                  map-options
+                  label="Filter Entity"
+                />
+              </div>
+            </q-card-section>
+            <q-separator />
+            <q-card-section class="q-pa-none">
+              <div class="row no-wrap items-stretch workspace-split-pane">
+                <div class="col workspace-entity-list-pane">
+                  <ItemSelectionList
+                    :items="entityEntries"
+                    label-key="label"
+                    bordered
+                    @select="onEntitySelect"
+                  />
+                </div>
+                <div class="col workspace-entity-detail-pane">
+                  <EntityDetailView
+                    class="q-pa-sm"
+                    :entity="selectedEntity?.entity"
+                    :type="selectedEntity?.type"
+                  />
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
         </div>
-      </template>
-    </q-splitter>
+
+        <div class="col-12 col-lg-4">
+          <QuickLinksCard title="Related Links" :items="relatedLinks" />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
 import WorkspaceSearch from 'src/components/WorkspaceSearch.vue'
+import ItemSelectionList from 'src/components/ItemSelectionList.vue'
+import EntityDetailView from 'src/components/details/EntityDetailView.vue'
+import QuickLinksCard from 'src/components/QuickLinksCard.vue'
 import { useBookLibraryStore } from 'src/stores/bookLibrary'
 import { createMockLibraryData, getMockWorkspaceData } from 'src/data/mockLibraryData'
 
-const splitter = ref(25)
-const workspaceTabs = ['Characters', 'Events', 'Settings', 'Relationships', 'Notes']
+const entityFilterOptions = [
+  { label: 'All', value: 'all' },
+  { label: 'Books', value: 'books' },
+  { label: 'Characters', value: 'characters' },
+  { label: 'Events', value: 'events' },
+  { label: 'Settings', value: 'settings' },
+  { label: 'Relationships', value: 'relationships' },
+]
 
 const bookStore = useBookLibraryStore()
 const { books: mockBooks } = createMockLibraryData()
@@ -97,6 +88,8 @@ const bookOptions = computed(() => {
 })
 
 const selectedBookId = ref(null)
+const selectedEntityType = ref('all')
+const selectedEntity = ref(null)
 
 watch(
   bookOptions,
@@ -122,37 +115,92 @@ const selectedWorkspace = computed(() => {
   return getMockWorkspaceData(bookId) || getMockWorkspaceData(mockBooks[0]?.id)
 })
 
-const entityList = computed(() => {
+const entityEntries = computed(() => {
   const workspace = selectedWorkspace.value
   if (!workspace) {
-    return ['No book selected']
+    return []
   }
 
-  return [
-    ...workspace.characters.slice(0, 4).map((character) => character.name),
-    ...workspace.events.slice(0, 2).map((event) => event.title),
-    ...workspace.settings.slice(0, 2).map((setting) => setting.name),
-  ]
-})
-
-const entityDetails = computed(() => {
-  const workspace = selectedWorkspace.value
-  if (!workspace) {
-    return ['Select a book to inspect its workspace data.']
+  switch (selectedEntityType.value) {
+    case 'books':
+      return [
+        {
+          id: workspace.book.id,
+          label: workspace.book.title,
+          type: 'book',
+          entity: workspace.book,
+        },
+      ]
+    case 'characters':
+      return workspace.characters.map((character) => ({
+        id: character.id,
+        label: character.name,
+        type: 'character',
+        entity: character,
+      }))
+    case 'events':
+      return workspace.events.map((event) => ({
+        id: event.id,
+        label: event.title,
+        type: 'event',
+        entity: event,
+      }))
+    case 'settings':
+      return workspace.settings.map((setting) => ({
+        id: setting.id,
+        label: setting.name,
+        type: 'setting',
+        entity: setting,
+      }))
+    case 'relationships':
+      return workspace.relationships.map((relationship) => ({
+        id: relationship.id,
+        label: `${relationship.relationshipType}: ${relationship.sourceId} → ${relationship.targetId}`,
+        type: 'relationship',
+        entity: relationship,
+      }))
+    case 'all':
+    default:
+      return [
+        {
+          id: workspace.book.id,
+          label: workspace.book.title,
+          type: 'book',
+          entity: workspace.book,
+        },
+        ...workspace.characters.slice(0, 4).map((character) => ({
+          id: character.id,
+          label: character.name,
+          type: 'character',
+          entity: character,
+        })),
+        ...workspace.events.slice(0, 2).map((event) => ({
+          id: event.id,
+          label: event.title,
+          type: 'event',
+          entity: event,
+        })),
+        ...workspace.settings.slice(0, 2).map((setting) => ({
+          id: setting.id,
+          label: setting.name,
+          type: 'setting',
+          entity: setting,
+        })),
+      ]
   }
-
-  const [leadCharacter] = workspace.characters
-  const [leadEvent] = workspace.events
-
-  return [
-    `${workspace.book.title} • ${workspace.book.author}`,
-    `${workspace.characters.length} characters, ${workspace.events.length} events, ${workspace.settings.length} settings`,
-    leadCharacter
-      ? `Focus character: ${leadCharacter.name} (${leadCharacter.role})`
-      : 'Focus character: none',
-    leadEvent ? `Key event: ${leadEvent.title}` : 'Key event: none',
-  ]
 })
+
+watch(
+  entityEntries,
+  (entries) => {
+    selectedEntity.value = entries[0] || null
+  },
+  { immediate: true },
+)
+
+function onEntitySelect(entry) {
+  selectedEntity.value = entry
+}
 
 const relatedLinks = computed(() => {
   const workspace = selectedWorkspace.value
@@ -165,3 +213,34 @@ const relatedLinks = computed(() => {
   })
 })
 </script>
+
+<style scoped>
+.workspace-split-pane {
+  min-height: 320px;
+}
+
+.workspace-entity-list-pane {
+  border-right: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 0;
+}
+
+.workspace-entity-detail-pane {
+  overflow: hidden;
+}
+
+.workspace-entity-detail-pane :deep(.q-pa-md),
+.workspace-entity-detail-pane :deep(.q-card-section) {
+  padding: 0;
+}
+
+@media (max-width: 599px) {
+  .workspace-split-pane {
+    flex-wrap: wrap;
+  }
+
+  .workspace-entity-list-pane {
+    border-right: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  }
+}
+</style>

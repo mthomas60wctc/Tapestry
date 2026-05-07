@@ -1,6 +1,8 @@
 <template>
-  <div class="q-gutter-md">
-    <BookSearch v-model="searchQuery" />
+  <div>
+    <div class="row q-col-gutter-md items-center q-mb-md">
+      <BookSearch v-model="searchQuery" />
+    </div>
 
     <div class="row q-col-gutter-md items-stretch">
       <div class="col-12 col-lg-8">
@@ -24,20 +26,7 @@
       </div>
 
       <div class="col-12 col-lg-4">
-        <q-card bordered flat class="full-height">
-          <q-card-section class="q-pa-md q-pb-sm text-subtitle1 text-weight-medium">
-            Quick Resume
-          </q-card-section>
-          <q-separator />
-          <q-list separator class="q-pa-none">
-            <q-item v-for="edit in recentEdits" :key="edit">
-              <q-item-section>{{ edit }}</q-item-section>
-            </q-item>
-          </q-list>
-          <q-card-actions align="right" class="q-pa-md">
-            <q-btn unelevated color="primary" label="+ Add Book / Project" />
-          </q-card-actions>
-        </q-card>
+        <QuickLinksCard title="Quick Resume" :items="recentEdits" list-class="q-pa-none" />
       </div>
     </div>
 
@@ -50,6 +39,7 @@ import { ref, computed } from 'vue'
 import NewBookModal from 'src/components/NewBookModal.vue'
 import BookGrid from 'src/components/BookGrid.vue'
 import BookSearch from 'src/components/BookSearch.vue'
+import QuickLinksCard from 'src/components/QuickLinksCard.vue'
 import { createMockLibraryData } from 'src/data/mockLibraryData'
 
 const { books: defaultBooks } = createMockLibraryData()
