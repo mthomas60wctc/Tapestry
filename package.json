@@ -12,6 +12,7 @@
     "test": "echo \"No test specified\" && exit 0",
     "dev": "quasar dev",
     "build": "quasar build",
+    "deploy": "npm run build && gh-pages -d dist/spa",
     "postinstall": "quasar prepare"
   },
   "dependencies": {
@@ -32,7 +33,8 @@
     "prettier": "^3.8.1",
     "@quasar/app-vite": "^2.5.1",
     "autoprefixer": "^10.4.27",
-    "postcss": "^8.5.8"
+    "postcss": "^8.5.8",
+    "gh-pages": "^6.2.0"
   },
   "engines": {
     "node": "^28 || ^26 || ^24 || ^22.12",

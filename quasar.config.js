@@ -39,9 +39,12 @@ export default defineConfig((/* ctx */) => {
 
       vueRouterMode: 'hash', // available values: 'hash', 'history'
       // vueRouterBase,
+      // When deploying to GitHub Pages under a repo (username.github.io/Tapestry),
+      // ensure assets are requested from the repo subpath.
+      publicPath: '/Tapestry/',
       // vueDevtools,
       // vueOptionsAPI: false,
-
+      // vueDevtools,
       // rebuildCache: true, // rebuilds Vite/linter/etc cache on startup
 
       // publicPath: '/',
