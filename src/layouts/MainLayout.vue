@@ -5,7 +5,9 @@
         <q-avatar color="primary" text-color="white" rounded size="40px">TP</q-avatar>
         <div class="column q-ml-sm">
           <div class="text-subtitle1 text-weight-bold">Tapestry</div>
-          <div class="text-caption text-white-7">Story tracking for forgetful readers</div>
+          <div class="text-caption text-white-7">
+            Story tracking for readers who lose the thread
+          </div>
         </div>
 
         <q-space />
