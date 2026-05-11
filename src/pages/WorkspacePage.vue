@@ -264,7 +264,7 @@ function collectEventLinks(workspace, event, items, seen) {
       addRelatedLink(
         items,
         seen,
-        `Character: ${formatDisplayName(character, 'character')}`,
+        `${formatDisplayName(character, 'character')}`,
         'Character',
         character.id,
       )
@@ -274,13 +274,7 @@ function collectEventLinks(workspace, event, items, seen) {
     ?.map((settingId) => findEntity(workspace, 'setting', settingId))
     .filter(Boolean)
     .forEach((setting) => {
-      addRelatedLink(
-        items,
-        seen,
-        `Setting: ${formatDisplayName(setting, 'setting')}`,
-        'Setting',
-        setting.id,
-      )
+      addRelatedLink(items, seen, `${formatDisplayName(setting, 'setting')}`, 'Setting', setting.id)
     })
 }
 
@@ -292,7 +286,7 @@ function collectSettingLinks(workspace, setting, items, seen) {
       addRelatedLink(
         items,
         seen,
-        `Character: ${formatDisplayName(character, 'character')}`,
+        `${formatDisplayName(character, 'character')}`,
         'Character',
         character.id,
       )
@@ -301,7 +295,7 @@ function collectSettingLinks(workspace, setting, items, seen) {
   workspace.events
     .filter((event) => event.settingIds?.includes(setting.id))
     .forEach((event) => {
-      addRelatedLink(items, seen, `Event: ${formatDisplayName(event, 'event')}`, 'Event', event.id)
+      addRelatedLink(items, seen, `${formatDisplayName(event, 'event')}`, 'Event', event.id)
     })
 }
 
@@ -343,24 +337,18 @@ function collectBookLinks(workspace, items, seen) {
     addRelatedLink(
       items,
       seen,
-      `Character: ${formatDisplayName(character, 'character')}`,
+      `${formatDisplayName(character, 'character')}`,
       'Character',
       character.id,
     )
   })
 
   workspace.events.slice(0, 3).forEach((event) => {
-    addRelatedLink(items, seen, `Event: ${formatDisplayName(event, 'event')}`, 'Event', event.id)
+    addRelatedLink(items, seen, `${formatDisplayName(event, 'event')}`, 'Event', event.id)
   })
 
   workspace.settings.slice(0, 3).forEach((setting) => {
-    addRelatedLink(
-      items,
-      seen,
-      `Setting: ${formatDisplayName(setting, 'setting')}`,
-      'Setting',
-      setting.id,
-    )
+    addRelatedLink(items, seen, `${formatDisplayName(setting, 'setting')}`, 'Setting', setting.id)
   })
 }
 

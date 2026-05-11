@@ -1,14 +1,17 @@
 <template>
   <div>
     <div v-if="!entity" class="q-pa-md text-grey-7">Select an item to view details.</div>
-    <BookDetailView v-else-if="resolvedType === 'book'" :book="entity" />
-    <CharacterDetailView v-else-if="resolvedType === 'character'" :character="entity" />
-    <EventDetailView v-else-if="resolvedType === 'event'" :event="entity" />
-    <SettingDetailView v-else-if="resolvedType === 'setting'" :setting="entity" />
-    <RelationshipDetailView v-else-if="resolvedType === 'relationship'" :relationship="entity" />
-    <div v-else class="q-pa-md q-gutter-sm">
-      <div class="text-h6">Unknown Entity</div>
-      <div class="text-body2 text-grey-7">No renderer is available for this object type.</div>
+    <div v-else class="entity-detail-wrapper">
+      <q-btn icon="edit" flat dense size="sm" class="entity-detail-edit-btn" />
+      <BookDetailView v-if="resolvedType === 'book'" :book="entity" />
+      <CharacterDetailView v-else-if="resolvedType === 'character'" :character="entity" />
+      <EventDetailView v-else-if="resolvedType === 'event'" :event="entity" />
+      <SettingDetailView v-else-if="resolvedType === 'setting'" :setting="entity" />
+      <RelationshipDetailView v-else-if="resolvedType === 'relationship'" :relationship="entity" />
+      <div v-else class="q-pa-md q-gutter-sm">
+        <div class="text-h6">Unknown Entity</div>
+        <div class="text-body2 text-grey-7">No renderer is available for this object type.</div>
+      </div>
     </div>
   </div>
 </template>
@@ -56,3 +59,16 @@ const resolvedType = computed(() => {
   return ''
 })
 </script>
+
+<style scoped>
+.entity-detail-wrapper {
+  position: relative;
+}
+
+.entity-detail-edit-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+}
+</style>
