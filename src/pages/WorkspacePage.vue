@@ -176,14 +176,6 @@ function formatDisplayName(entity, type) {
   }
 }
 
-function formatRelationshipType(relationshipType) {
-  if (!relationshipType) {
-    return 'related to'
-  }
-
-  return relationshipType.replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
-}
-
 function getIconForType(type) {
   const iconMap = {
     character: 'person',
