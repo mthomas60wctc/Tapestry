@@ -9,6 +9,9 @@
       :class="selectable || interactive ? 'cursor-pointer' : ''"
       @click="selectItem(item, index)"
     >
+      <q-item-section avatar v-if="item.icon">
+        <q-icon :name="item.icon" />
+      </q-item-section>
       <q-item-section>{{ getItemLabel(item) }}</q-item-section>
       <q-item-section v-if="sideKey && isObjectItem(item)" side>
         {{ getItemSide(item) }}

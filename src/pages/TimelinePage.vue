@@ -105,7 +105,9 @@ const timelineEvents = computed(() => {
 
 const quickJumps = computed(() => {
   const events = selectedWorkspace.value?.events || []
-  return events.slice(0, 2).map((event) => ({ id: event.id, type: 'event', label: event.title }))
+  return events
+    .slice(0, 2)
+    .map((event) => ({ id: event.id, type: 'event', label: event.title, icon: 'event' }))
 })
 
 function onQuickJumpSelect(item) {

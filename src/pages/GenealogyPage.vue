@@ -114,7 +114,9 @@ const router = useRouter()
 
 const quickJumps = computed(() => {
   const characters = selectedWorkspace.value?.characters || []
-  return characters.slice(0, 2).map((c) => ({ id: c.id, type: 'character', label: c.name }))
+  return characters
+    .slice(0, 2)
+    .map((c) => ({ id: c.id, type: 'character', label: c.name, icon: 'person' }))
 })
 
 function onQuickJumpSelect(item) {

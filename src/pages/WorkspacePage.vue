@@ -184,6 +184,20 @@ function formatRelationshipType(relationshipType) {
   return relationshipType.replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
+function getIconForType(type) {
+  const iconMap = {
+    character: 'person',
+    Character: 'person',
+    event: 'event',
+    Event: 'event',
+    setting: 'place',
+    Setting: 'place',
+    relationship: 'link',
+    Relationship: 'link',
+  }
+  return iconMap[type] || null
+}
+
 function addRelatedLink(items, seen, label, side, id) {
   const key = id || `${side}:${label}`
   if (seen.has(key)) {
@@ -191,7 +205,8 @@ function addRelatedLink(items, seen, label, side, id) {
   }
 
   seen.add(key)
-  items.push({ id: key, label, side })
+  const icon = getIconForType(side)
+  items.push({ id: key, label, side, icon })
 }
 
 function collectCharacterLinks(workspace, character, items, seen) {
@@ -210,13 +225,7 @@ function collectCharacterLinks(workspace, character, items, seen) {
         return
       }
 
-      addRelatedLink(
-        items,
-        seen,
-        `${formatRelationshipType(relationship.relationshipType)}: ${formatDisplayName(other, 'character')}`,
-        'Character',
-        other.id,
-      )
+      addRelatedLink(items, seen, `${formatDisplayName(other, 'character')}`, 'Character', other.id)
     })
 
   workspace.events
@@ -400,6 +409,7 @@ const entityEntries = computed(() => {
           id: workspace.book.id,
           label: workspace.book.title,
           type: 'book',
+          icon: 'book',
           entity: workspace.book,
         },
       ]
@@ -408,6 +418,7 @@ const entityEntries = computed(() => {
         id: character.id,
         label: character.name,
         type: 'character',
+        icon: getIconForType('character'),
         entity: character,
       }))
     case 'events':
@@ -415,6 +426,7 @@ const entityEntries = computed(() => {
         id: event.id,
         label: event.title,
         type: 'event',
+        icon: getIconForType('event'),
         entity: event,
       }))
     case 'settings':
@@ -422,6 +434,7 @@ const entityEntries = computed(() => {
         id: setting.id,
         label: setting.name,
         type: 'setting',
+        icon: getIconForType('setting'),
         entity: setting,
       }))
     case 'relationships':
@@ -429,6 +442,7 @@ const entityEntries = computed(() => {
         id: relationship.id,
         label: `${relationship.relationshipType}: ${relationship.sourceId} → ${relationship.targetId}`,
         type: 'relationship',
+        icon: getIconForType('relationship'),
         entity: relationship,
       }))
     case 'all':
@@ -444,18 +458,21 @@ const entityEntries = computed(() => {
           id: character.id,
           label: character.name,
           type: 'character',
+          icon: getIconForType('character'),
           entity: character,
         })),
         ...workspace.events.slice(0, 2).map((event) => ({
           id: event.id,
           label: event.title,
           type: 'event',
+          icon: getIconForType('event'),
           entity: event,
         })),
         ...workspace.settings.slice(0, 2).map((setting) => ({
           id: setting.id,
           label: setting.name,
           type: 'setting',
+          icon: getIconForType('setting'),
           entity: setting,
         })),
       ]
@@ -571,10 +588,14 @@ const relatedLinks = computed(() => {
 .workspace-entity-list-pane {
   border-right: 1px solid rgba(0, 0, 0, 0.12);
   padding: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .workspace-entity-detail-pane {
   overflow: hidden;
+  flex: 2;
+  min-width: 0;
 }
 
 .workspace-entity-detail-pane :deep(.q-pa-md),

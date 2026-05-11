@@ -5,7 +5,7 @@
     class="full-height book-card cursor-pointer q-hoverable"
     @click="emit('select', book)"
   >
-    <div class="row no-wrap items-stretch full-height">
+    <div class="row no-wrap items-start">
       <div class="book-cover-container">
         <div class="book-cover">
           <img v-if="coverSrc && !imgError" :src="coverSrc" @error="imgError = true" alt="cover" />
@@ -14,7 +14,7 @@
           }}</q-avatar>
         </div>
       </div>
-      <q-card-section class="col q-pa-md">
+      <q-card-section class="col q-pa-md q-ml-sm">
         <div class="text-subtitle2 text-weight-medium">{{ book.title }}</div>
         <div class="text-caption text-grey-7">{{ book.series || book.author }}</div>
       </q-card-section>
@@ -70,22 +70,36 @@ const avatarText = computed(() => {
   color: #999;
 }
 
-.book-cover img {
-  width: 64px;
-  height: 64px;
-  object-fit: cover;
-  border-radius: 0;
-  display: block;
-}
-
 .book-cover-container {
+  width: 64px;
+  height: 80px;
   flex-shrink: 0;
   overflow: hidden;
+  padding: 0;
+  margin: 0;
 }
 
 .book-cover {
   width: 64px;
-  height: 64px;
+  height: 80px;
+  display: block;
+  font-size: 0;
+  line-height: 0;
+}
+
+.book-cover img {
+  width: 64px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 0;
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+
+.book-cover :deep(.q-avatar) {
+  width: 64px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
