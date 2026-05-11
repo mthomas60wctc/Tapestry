@@ -12,7 +12,7 @@
     "test": "echo \"No test specified\" && exit 0",
     "dev": "quasar dev",
     "build": "quasar build",
-    "deploy": "npm run build && gh-pages -d dist/spa",
+    "deploy": "pnpm run build && pnpm dlx gh-pages -d dist/spa",
     "postinstall": "quasar prepare"
   },
   "dependencies": {
