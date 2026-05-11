@@ -5,7 +5,7 @@
     </div>
 
     <div class="row q-col-gutter-md items-stretch">
-      <div class="col-12 col-lg-8">
+      <div class="col-12 col-lg-9">
         <q-card bordered flat>
           <q-card-section class="row items-center justify-between q-pa-md q-pb-sm">
             <div class="text-subtitle1 text-weight-medium">Library Book Grid</div>
@@ -20,13 +20,18 @@
           </q-card-section>
           <q-separator />
           <q-card-section class="q-pa-md">
-            <BookGrid :books="filteredBooks" />
+            <BookGrid :books="filteredBooks" @select="openWorkspace" />
           </q-card-section>
         </q-card>
       </div>
 
-      <div class="col-12 col-lg-4">
-        <QuickLinksCard title="Quick Resume" :items="recentEdits" list-class="q-pa-none" />
+      <div class="col-12 col-lg-3">
+        <QuickLinksCard
+          title="Quick Resume"
+          :items="recentEdits"
+          list-class="q-pa-none"
+          @select="onQuickResumeSelect"
+        />
       </div>
     </div>
 
@@ -36,13 +41,17 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import NewBookModal from 'src/components/NewBookModal.vue'
 import BookGrid from 'src/components/BookGrid.vue'
 import BookSearch from 'src/components/BookSearch.vue'
 import QuickLinksCard from 'src/components/QuickLinksCard.vue'
 import { createMockLibraryData } from 'src/data/mockLibraryData'
+import { useBookWorkspaceStore } from 'src/stores/bookWorkspace'
 
 const { books: defaultBooks } = createMockLibraryData()
+const router = useRouter()
+const bookWorkspaceStore = useBookWorkspaceStore()
 
 const books = ref(
   defaultBooks.map((book) => ({
@@ -64,9 +73,30 @@ const filteredBooks = computed(() => {
   })
 })
 
-const recentEdits = defaultBooks.slice(0, 3).map((book) => `Recent edit: ${book.title}`)
+const recentEdits = defaultBooks.slice(0, 3).map((book) => ({
+  id: book.id,
+  type: 'book',
+  label: `Recent edit: ${book.title}`,
+}))
 
 const newBookOpen = ref(false)
+
+function openWorkspace(book) {
+  if (!book?.id) {
+    return
+  }
+
+  bookWorkspaceStore.currentBookId = book.id
+  router.push('/workspace')
+}
+
+function onQuickResumeSelect(item) {
+  if (!item) return
+  const bookId = item.id
+  if (!bookId) return
+  bookWorkspaceStore.currentBookId = bookId
+  router.push({ path: '/workspace', query: { book: bookId } })
+}
 
 function addBook(book) {
   books.value.push({

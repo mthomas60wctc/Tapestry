@@ -53,7 +53,12 @@
         </div>
 
         <div class="col-12 col-lg-4">
-          <QuickLinksCard title="Related Links" :items="relatedLinks" />
+          <QuickLinksCard
+            title="Related Links"
+            :items="relatedLinks"
+            side-key="side"
+            @select="onRelatedLinkSelect"
+          />
         </div>
       </div>
     </div>
@@ -62,16 +67,17 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import WorkspaceSearch from 'src/components/WorkspaceSearch.vue'
 import ItemSelectionList from 'src/components/ItemSelectionList.vue'
 import EntityDetailView from 'src/components/details/EntityDetailView.vue'
 import QuickLinksCard from 'src/components/QuickLinksCard.vue'
 import { useBookLibraryStore } from 'src/stores/bookLibrary'
+import { useBookWorkspaceStore } from 'src/stores/bookWorkspace'
 import { createMockLibraryData, getMockWorkspaceData } from 'src/data/mockLibraryData'
 
 const entityFilterOptions = [
   { label: 'All', value: 'all' },
-  { label: 'Books', value: 'books' },
   { label: 'Characters', value: 'characters' },
   { label: 'Events', value: 'events' },
   { label: 'Settings', value: 'settings' },
@@ -79,6 +85,7 @@ const entityFilterOptions = [
 ]
 
 const bookStore = useBookLibraryStore()
+const workspaceStore = useBookWorkspaceStore()
 const { books: mockBooks } = createMockLibraryData()
 
 const bookOptions = computed(() => {
@@ -87,7 +94,15 @@ const bookOptions = computed(() => {
   return mockBooks
 })
 
-const selectedBookId = ref(null)
+const route = useRoute()
+const router = useRouter()
+
+const selectedBookId = computed({
+  get: () => workspaceStore.currentBookId,
+  set: (value) => {
+    workspaceStore.currentBookId = value
+  },
+})
 const selectedEntityType = ref('all')
 const selectedEntity = ref(null)
 
@@ -114,6 +129,263 @@ const selectedWorkspace = computed(() => {
 
   return getMockWorkspaceData(bookId) || getMockWorkspaceData(mockBooks[0]?.id)
 })
+
+function getEntityCollection(workspace, type) {
+  if (!workspace) {
+    return []
+  }
+
+  switch (type) {
+    case 'book':
+      return [workspace.book].filter(Boolean)
+    case 'character':
+      return workspace.characters || []
+    case 'event':
+      return workspace.events || []
+    case 'setting':
+      return workspace.settings || []
+    case 'relationship':
+      return workspace.relationships || []
+    default:
+      return []
+  }
+}
+
+function findEntity(workspace, type, id) {
+  return getEntityCollection(workspace, type).find((entity) => entity.id === id) || null
+}
+
+function formatDisplayName(entity, type) {
+  if (!entity) {
+    return 'Unknown'
+  }
+
+  switch (type) {
+    case 'book':
+      return entity.title || 'Untitled Book'
+    case 'character':
+      return entity.name || 'Unnamed Character'
+    case 'event':
+      return entity.title || 'Untitled Event'
+    case 'setting':
+      return entity.name || 'Unnamed Setting'
+    case 'relationship':
+      return entity.relationshipType || 'Relationship'
+    default:
+      return entity.name || entity.title || entity.id || 'Unknown'
+  }
+}
+
+function formatRelationshipType(relationshipType) {
+  if (!relationshipType) {
+    return 'related to'
+  }
+
+  return relationshipType.replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+function addRelatedLink(items, seen, label, side, id) {
+  const key = id || `${side}:${label}`
+  if (seen.has(key)) {
+    return
+  }
+
+  seen.add(key)
+  items.push({ id: key, label, side })
+}
+
+function collectCharacterLinks(workspace, character, items, seen) {
+  workspace.relationships
+    .filter(
+      (relationship) =>
+        (relationship.sourceId === character.id && relationship.sourceType === 'character') ||
+        (relationship.targetId === character.id && relationship.targetType === 'character'),
+    )
+    .forEach((relationship) => {
+      const otherId =
+        relationship.sourceId === character.id ? relationship.targetId : relationship.sourceId
+      const other = findEntity(workspace, 'character', otherId)
+
+      if (!other) {
+        return
+      }
+
+      addRelatedLink(
+        items,
+        seen,
+        `${formatRelationshipType(relationship.relationshipType)}: ${formatDisplayName(other, 'character')}`,
+        'Character',
+        other.id,
+      )
+    })
+
+  workspace.events
+    .filter((event) => event.characterIds?.includes(character.id))
+    .forEach((event) => {
+      addRelatedLink(
+        items,
+        seen,
+        `Participates In: ${formatDisplayName(event, 'event')}`,
+        'Event',
+        event.id,
+      )
+    })
+
+  workspace.settings
+    .filter(
+      (setting) =>
+        setting.relatedCharacterIds?.includes(character.id) ||
+        workspace.relationships.some(
+          (relationship) =>
+            ((relationship.sourceId === character.id && relationship.sourceType === 'character') ||
+              (relationship.targetId === character.id &&
+                relationship.targetType === 'character')) &&
+            ((relationship.sourceId === setting.id && relationship.sourceType === 'setting') ||
+              (relationship.targetId === setting.id && relationship.targetType === 'setting')),
+        ),
+    )
+    .forEach((setting) => {
+      addRelatedLink(
+        items,
+        seen,
+        `Associated With: ${formatDisplayName(setting, 'setting')}`,
+        'Setting',
+        setting.id,
+      )
+    })
+}
+
+function collectEventLinks(workspace, event, items, seen) {
+  event.characterIds
+    ?.map((characterId) => findEntity(workspace, 'character', characterId))
+    .filter(Boolean)
+    .forEach((character) => {
+      addRelatedLink(
+        items,
+        seen,
+        `Character: ${formatDisplayName(character, 'character')}`,
+        'Character',
+        character.id,
+      )
+    })
+
+  event.settingIds
+    ?.map((settingId) => findEntity(workspace, 'setting', settingId))
+    .filter(Boolean)
+    .forEach((setting) => {
+      addRelatedLink(
+        items,
+        seen,
+        `Setting: ${formatDisplayName(setting, 'setting')}`,
+        'Setting',
+        setting.id,
+      )
+    })
+}
+
+function collectSettingLinks(workspace, setting, items, seen) {
+  setting.relatedCharacterIds
+    ?.map((characterId) => findEntity(workspace, 'character', characterId))
+    .filter(Boolean)
+    .forEach((character) => {
+      addRelatedLink(
+        items,
+        seen,
+        `Character: ${formatDisplayName(character, 'character')}`,
+        'Character',
+        character.id,
+      )
+    })
+
+  workspace.events
+    .filter((event) => event.settingIds?.includes(setting.id))
+    .forEach((event) => {
+      addRelatedLink(items, seen, `Event: ${formatDisplayName(event, 'event')}`, 'Event', event.id)
+    })
+}
+
+function collectRelationshipLinks(workspace, relationship, items, seen) {
+  const source = findEntity(workspace, relationship.sourceType, relationship.sourceId)
+  const target = findEntity(workspace, relationship.targetType, relationship.targetId)
+
+  if (source) {
+    addRelatedLink(
+      items,
+      seen,
+      `Source: ${formatDisplayName(source, relationship.sourceType)}`,
+      relationship.sourceType === 'character'
+        ? 'Character'
+        : relationship.sourceType === 'event'
+          ? 'Event'
+          : 'Setting',
+      source.id,
+    )
+  }
+
+  if (target) {
+    addRelatedLink(
+      items,
+      seen,
+      `Target: ${formatDisplayName(target, relationship.targetType)}`,
+      relationship.targetType === 'character'
+        ? 'Character'
+        : relationship.targetType === 'event'
+          ? 'Event'
+          : 'Setting',
+      target.id,
+    )
+  }
+}
+
+function collectBookLinks(workspace, items, seen) {
+  workspace.characters.slice(0, 4).forEach((character) => {
+    addRelatedLink(
+      items,
+      seen,
+      `Character: ${formatDisplayName(character, 'character')}`,
+      'Character',
+      character.id,
+    )
+  })
+
+  workspace.events.slice(0, 3).forEach((event) => {
+    addRelatedLink(items, seen, `Event: ${formatDisplayName(event, 'event')}`, 'Event', event.id)
+  })
+
+  workspace.settings.slice(0, 3).forEach((setting) => {
+    addRelatedLink(
+      items,
+      seen,
+      `Setting: ${formatDisplayName(setting, 'setting')}`,
+      'Setting',
+      setting.id,
+    )
+  })
+}
+
+function onRelatedLinkSelect(item) {
+  if (!item) return
+
+  const side = item.side || ''
+  const id = item.id
+
+  const mapping = {
+    Character: 'characters',
+    Event: 'events',
+    Setting: 'settings',
+    Relationship: 'relationships',
+  }
+
+  const filterType = mapping[side] || 'all'
+  selectedEntityType.value = filterType
+
+  // Find the matching entry in the current entries
+  const entries = entityEntries.value || []
+  const match = entries.find((e) => e.id === id)
+  if (match) {
+    selectedEntity.value = match
+  }
+}
 
 const entityEntries = computed(() => {
   const workspace = selectedWorkspace.value
@@ -193,7 +465,62 @@ const entityEntries = computed(() => {
 watch(
   entityEntries,
   (entries) => {
+    if (!entries.length) {
+      selectedEntity.value = null
+      return
+    }
+
+    const existing = selectedEntity.value
+    if (
+      existing &&
+      entries.some((entry) => entry.id === existing.id && entry.type === existing.type)
+    ) {
+      return
+    }
+
     selectedEntity.value = entries[0] || null
+  },
+  { immediate: true },
+)
+
+// Respond to route query params for navigation from other pages
+watch(
+  () => route.query,
+  (q) => {
+    const bookId = q.book || q.b
+    if (bookId) {
+      selectedBookId.value = bookId
+    }
+
+    const type = q.type
+    const id = q.id
+    if (type && id) {
+      // Map incoming type to selection filter
+      const typeMap = {
+        character: 'characters',
+        event: 'events',
+        setting: 'settings',
+        relationship: 'relationships',
+        book: 'books',
+      }
+
+      const desired = typeMap[type] || 'all'
+      selectedEntityType.value = desired
+
+      // Wait for entries to refresh then select
+      const unwatch = watch(
+        () => entityEntries.value,
+        (entries) => {
+          const found = (entries || []).find((e) => e.id === id)
+          if (found) {
+            selectedEntity.value = found
+            unwatch()
+            // clear query params to avoid re-triggering
+            router.replace({ path: router.currentRoute.value.path, query: {} })
+          }
+        },
+      )
+    }
   },
   { immediate: true },
 )
@@ -204,13 +531,35 @@ function onEntitySelect(entry) {
 
 const relatedLinks = computed(() => {
   const workspace = selectedWorkspace.value
-  if (!workspace) {
+  const selection = selectedEntity.value
+
+  if (!workspace || !selection) {
     return []
   }
 
-  return workspace.relationships.slice(0, 3).map((relationship) => {
-    return `${relationship.relationshipType}: ${relationship.sourceId} → ${relationship.targetId}`
-  })
+  const items = []
+  const seen = new Set()
+
+  switch (selection.type) {
+    case 'character':
+      collectCharacterLinks(workspace, selection.entity, items, seen)
+      break
+    case 'event':
+      collectEventLinks(workspace, selection.entity, items, seen)
+      break
+    case 'setting':
+      collectSettingLinks(workspace, selection.entity, items, seen)
+      break
+    case 'relationship':
+      collectRelationshipLinks(workspace, selection.entity, items, seen)
+      break
+    case 'book':
+    default:
+      collectBookLinks(workspace, items, seen)
+      break
+  }
+
+  return items
 })
 </script>
 

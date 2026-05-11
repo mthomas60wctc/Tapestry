@@ -1,9 +1,25 @@
 import { Book, Character, Event, Setting, Relationship } from 'src/models'
 
-function withCover(book, index) {
+import gameOfThronesImg from './Covers/Game Of Thrones.jpg'
+import fellowshipImg from './Covers/Fellowship of the Ring.jpg'
+import mistbornImg from './Covers/Mistborn.jpg'
+import duneImg from './Covers/Dune.jpg'
+import dungeonCrawlerImg from './Covers/Dungeon Crawler Carl.jpg'
+import foundationImg from './Covers/Foundation.jpg'
+
+const coverMap = {
+  'A Game of Thrones': gameOfThronesImg,
+  'The Fellowship of the Ring': fellowshipImg,
+  Mistborn: mistbornImg,
+  Dune: duneImg,
+  'Dungeon Crawler Carl': dungeonCrawlerImg,
+  Foundation: foundationImg,
+}
+
+function withCover(book) {
   return {
     ...book,
-    cover: String(index + 1).padStart(2, '0'),
+    cover: coverMap[book.title] || null,
   }
 }
 
@@ -83,6 +99,7 @@ function createWesterosWorkspace() {
       type: 'city',
       description: 'Capital of the Seven Kingdoms and center of political intrigue.',
       ruler: 'House Baratheon',
+      relatedCharacterIds: [characters[0].id, characters[1].id, characters[3].id],
       tags: ['capital', 'court', 'politics'],
     }),
     new Setting({
@@ -91,6 +108,7 @@ function createWesterosWorkspace() {
       name: 'The Wall',
       type: 'fortification',
       description: 'Ancient barrier guarding the realm from the North.',
+      relatedCharacterIds: [characters[2].id],
       tags: ['watch', 'north'],
     }),
   ]
@@ -253,6 +271,7 @@ function createMiddleEarthWorkspace() {
       name: 'Bag End',
       type: 'home',
       description: 'Frodo’s home in the Shire.',
+      relatedCharacterIds: [characters[0].id, characters[1].id],
       tags: ['shire', 'hobbiton'],
     }),
     new Setting({
@@ -261,6 +280,7 @@ function createMiddleEarthWorkspace() {
       name: 'Rivendell',
       type: 'sanctuary',
       description: 'Elven refuge where the Fellowship is formed.',
+      relatedCharacterIds: [characters[0].id, characters[1].id, characters[2].id, characters[3].id],
       tags: ['elves', 'sanctuary'],
     }),
     new Setting({
@@ -269,6 +289,7 @@ function createMiddleEarthWorkspace() {
       name: 'Moria',
       type: 'dungeon',
       description: 'The abandoned dwarf realm beneath the mountains.',
+      relatedCharacterIds: [characters[0].id, characters[1].id, characters[2].id, characters[3].id],
       tags: ['dwarves', 'danger'],
     }),
   ]
@@ -419,6 +440,7 @@ function createMistbornWorkspace() {
       type: 'city',
       description: 'The imperial capital under the Lord Ruler.',
       ruler: 'The Lord Ruler',
+      relatedCharacterIds: [characters[0].id, characters[1].id, characters[2].id, characters[3].id],
       tags: ['capital', 'rebellion'],
     }),
     new Setting({
@@ -428,6 +450,7 @@ function createMistbornWorkspace() {
       type: 'palace',
       description: 'The citadel of the empire and symbol of domination.',
       ruler: 'The Lord Ruler',
+      relatedCharacterIds: [characters[0].id, characters[1].id, characters[2].id],
       tags: ['palace', 'power'],
     }),
     new Setting({
@@ -436,6 +459,7 @@ function createMistbornWorkspace() {
       name: 'The Final Empire',
       type: 'realm',
       description: 'An oppressive world where ash falls from the sky.',
+      relatedCharacterIds: [characters[0].id, characters[1].id, characters[2].id, characters[3].id],
       tags: ['empire', 'ash'],
     }),
   ]
@@ -581,6 +605,7 @@ function createDuneWorkspace() {
       type: 'planet',
       description: 'Desert planet essential to the galactic economy, source of spice.',
       ruler: 'Variable',
+      relatedCharacterIds: [characters[0].id, characters[1].id, characters[2].id],
       tags: ['desert', 'spice', 'ecology'],
     }),
     new Setting({
@@ -590,6 +615,7 @@ function createDuneWorkspace() {
       type: 'planet',
       description: 'Water-rich homeworld of House Atreides.',
       ruler: 'House Atreides',
+      relatedCharacterIds: [characters[0].id, characters[1].id, characters[2].id],
       tags: ['water', 'home'],
     }),
   ]
@@ -678,6 +704,7 @@ function createDungeonCrawlerCarlWorkspace() {
       type: 'dungeon',
       description: 'An endless series of floors filled with monsters and treasures.',
       ruler: 'Unknown',
+      relatedCharacterIds: [characters[0].id, characters[1].id],
       tags: ['dungeon', 'maze', 'danger'],
     }),
   ]
@@ -758,6 +785,7 @@ function createFoundationWorkspace() {
       type: 'planet',
       description: 'Capital of the Galactic Empire, a completely urbanized world.',
       ruler: 'Galactic Empire',
+      relatedCharacterIds: [characters[0].id, characters[1].id],
       tags: ['empire', 'capital', 'urban'],
     }),
     new Setting({
@@ -767,6 +795,7 @@ function createFoundationWorkspace() {
       type: 'planetary-system',
       description: 'Remote planet chosen to house the Foundation.',
       ruler: 'The Foundation',
+      relatedCharacterIds: [characters[0].id, characters[1].id],
       tags: ['foundation', 'knowledge', 'isolated'],
     }),
   ]
@@ -809,7 +838,7 @@ export function createMockLibraryData() {
     createFoundationWorkspace(),
   ]
 
-  const books = workspaces.map((workspace, index) => withCover(workspace.book, index))
+  const books = workspaces.map((workspace) => withCover(workspace.book))
 
   return {
     books,

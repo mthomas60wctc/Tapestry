@@ -5,7 +5,7 @@
         <q-avatar color="primary" text-color="white" rounded size="40px">TP</q-avatar>
         <div class="column q-ml-sm">
           <div class="text-subtitle1 text-weight-bold">Tapestry</div>
-          <div class="text-caption text-grey-7">Story tracking for readers and series</div>
+          <div class="text-caption text-white-7">Story tracking for forgetful readers</div>
         </div>
 
         <q-space />
@@ -19,10 +19,8 @@
           @click="toggleDarkMode"
         />
 
-        <q-chip outline color="primary" text-color="primary" icon="account_circle">Account</q-chip>
+        <q-chip color="accent" icon="account_circle">Account</q-chip>
       </q-toolbar>
-
-      <q-separator />
 
       <div class="q-px-md q-pb-sm q-pt-xs">
         <q-tabs dense align="center" narrow-indicator>

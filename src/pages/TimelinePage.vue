@@ -40,7 +40,7 @@
             <EntityDetailView :entity="selectedEvent" type="event" />
           </q-card>
 
-          <QuickLinksCard title="Quick Jump" :items="quickJumps" />
+          <QuickLinksCard title="Quick Jump" :items="quickJumps" @select="onQuickJumpSelect" />
         </div>
       </div>
     </div>
@@ -53,11 +53,20 @@ import WorkspaceSearch from 'src/components/WorkspaceSearch.vue'
 import EntityDetailView from 'src/components/details/EntityDetailView.vue'
 import QuickLinksCard from 'src/components/QuickLinksCard.vue'
 import { createMockLibraryData, getMockWorkspaceData } from 'src/data/mockLibraryData'
+import { useBookWorkspaceStore } from 'src/stores/bookWorkspace'
+import { useRouter } from 'vue-router'
 
 const { books: mockBooks } = createMockLibraryData()
 const bookOptions = computed(() => mockBooks)
 
-const selectedBookId = ref(null)
+const workspaceStore = useBookWorkspaceStore()
+const router = useRouter()
+const selectedBookId = computed({
+  get: () => workspaceStore.currentBookId,
+  set: (value) => {
+    workspaceStore.currentBookId = value
+  },
+})
 const selectedEventId = ref(null)
 
 watch(
@@ -96,8 +105,17 @@ const timelineEvents = computed(() => {
 
 const quickJumps = computed(() => {
   const events = selectedWorkspace.value?.events || []
-  return events.slice(0, 2).map((event) => event.title)
+  return events.slice(0, 2).map((event) => ({ id: event.id, type: 'event', label: event.title }))
 })
+
+function onQuickJumpSelect(item) {
+  if (!item) return
+  const bookId = selectedBookId.value
+  if (bookId) {
+    workspaceStore.currentBookId = bookId
+    router.push({ path: '/workspace', query: { book: bookId, type: item.type, id: item.id } })
+  }
+}
 </script>
 <style scoped>
 .timeline-entry-selected {

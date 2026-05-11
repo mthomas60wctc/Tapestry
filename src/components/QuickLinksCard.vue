@@ -9,12 +9,19 @@
       :list-class="listClass"
       :label-key="labelKey"
       :side-key="sideKey"
+      @select="onSelect"
     />
   </q-card>
 </template>
 
 <script setup>
 import ItemSelectionList from 'src/components/ItemSelectionList.vue'
+
+const emit = defineEmits(['select'])
+
+function onSelect(item) {
+  emit('select', item)
+}
 
 defineProps({
   title: { type: String, required: true },

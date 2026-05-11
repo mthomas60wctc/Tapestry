@@ -41,6 +41,10 @@
           <q-separator />
           <EntityDetailView :entity="selectedCharacter" type="character" />
         </q-card>
+
+        <div class="q-mt-md">
+          <QuickLinksCard title="Quick Jump" :items="quickJumps" @select="onQuickJumpSelect" />
+        </div>
       </div>
     </div>
   </div>
@@ -51,11 +55,20 @@ import { computed, ref, watch } from 'vue'
 import WorkspaceSearch from 'src/components/WorkspaceSearch.vue'
 import EntityDetailView from 'src/components/details/EntityDetailView.vue'
 import { createMockLibraryData, getMockWorkspaceData } from 'src/data/mockLibraryData'
+import { useBookWorkspaceStore } from 'src/stores/bookWorkspace'
+import QuickLinksCard from 'src/components/QuickLinksCard.vue'
+import { useRouter } from 'vue-router'
 
 const { books: mockBooks } = createMockLibraryData()
 const bookOptions = computed(() => mockBooks)
 
-const selectedBookId = ref(null)
+const workspaceStore = useBookWorkspaceStore()
+const selectedBookId = computed({
+  get: () => workspaceStore.currentBookId,
+  set: (value) => {
+    workspaceStore.currentBookId = value
+  },
+})
 const selectedCharacterId = ref(null)
 
 watch(
@@ -96,4 +109,20 @@ const selectedCharacter = computed(() => {
   const characters = selectedWorkspace.value?.characters || []
   return characters.find((character) => character.id === selectedCharacterId.value) || null
 })
+
+const router = useRouter()
+
+const quickJumps = computed(() => {
+  const characters = selectedWorkspace.value?.characters || []
+  return characters.slice(0, 2).map((c) => ({ id: c.id, type: 'character', label: c.name }))
+})
+
+function onQuickJumpSelect(item) {
+  if (!item) return
+  const bookId = selectedBookId.value
+  if (bookId) {
+    workspaceStore.currentBookId = bookId
+    router.push({ path: '/workspace', query: { book: bookId, type: item.type, id: item.id } })
+  }
+}
 </script>
