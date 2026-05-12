@@ -1,13 +1,14 @@
 <template>
   <div>
     <div class="row q-col-gutter-md items-center q-mb-md">
-      <div class="col-12 col-md-7">
-        <WorkspaceSearch v-model="selectedBookId" :items="bookOptions" />
-      </div>
-      <div class="col-12 col-md-5">
-        <q-chip outline color="primary" icon="filter_list">
-          Character / Chapter / Arc / Setting
-        </q-chip>
+      <div class="col-12 col-md-8">
+        <q-input
+          v-model="searchEventText"
+          outlined
+          dense
+          placeholder="Search events..."
+          clearable
+        />
       </div>
     </div>
 
@@ -15,7 +16,7 @@
       <div class="col-12 col-md-8">
         <q-timeline color="primary">
           <q-timeline-entry
-            v-for="(event, index) in timelineEvents"
+            v-for="(event, index) in filteredTimelineEvents"
             :key="event.id"
             :title="event.title"
             :subtitle="event.chapterTitle || `Chapter ${event.chapter ?? 'N/A'}`"
@@ -49,7 +50,6 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import WorkspaceSearch from 'src/components/WorkspaceSearch.vue'
 import EntityDetailView from 'src/components/details/EntityDetailView.vue'
 import QuickLinksCard from 'src/components/QuickLinksCard.vue'
 import { createMockLibraryData, getMockWorkspaceData } from 'src/data/mockLibraryData'
@@ -68,6 +68,7 @@ const selectedBookId = computed({
   },
 })
 const selectedEventId = ref(null)
+const searchEventText = ref('')
 
 watch(
   bookOptions,
@@ -101,6 +102,20 @@ const selectedEvent = computed(() => {
 
 const timelineEvents = computed(() => {
   return selectedWorkspace.value?.events || []
+})
+
+const filteredTimelineEvents = computed(() => {
+  const search = searchEventText.value.toLowerCase().trim()
+  if (!search) {
+    return timelineEvents.value
+  }
+
+  return timelineEvents.value.filter((event) => {
+    const titleMatch = event.title?.toLowerCase().includes(search)
+    const descriptionMatch = event.description?.toLowerCase().includes(search)
+    const chapterMatch = event.chapterTitle?.toLowerCase().includes(search)
+    return titleMatch || descriptionMatch || chapterMatch
+  })
 })
 
 const quickJumps = computed(() => {

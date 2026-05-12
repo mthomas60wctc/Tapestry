@@ -1,14 +1,5 @@
 <template>
   <div>
-    <div class="row q-col-gutter-md items-center q-mb-md">
-      <div class="col-12 col-md-7">
-        <WorkspaceSearch v-model="selectedBookId" :items="bookOptions" />
-      </div>
-      <div class="col-12 col-md-5">
-        <q-input outlined dense label="Filters / Sort / Add Entity" />
-      </div>
-    </div>
-
     <div>
       <div class="row q-col-gutter-md items-stretch">
         <div class="col-12 col-lg-8">
@@ -16,6 +7,15 @@
             <q-card-section class="row items-center q-col-gutter-md q-pa-md q-pb-sm">
               <div class="col">
                 <div class="text-subtitle1 text-weight-medium">Entity List + Detail</div>
+              </div>
+              <div class="col-auto" style="min-width: 200px">
+                <q-input
+                  v-model="searchEntityText"
+                  outlined
+                  dense
+                  placeholder="Search entities..."
+                  clearable
+                />
               </div>
               <div class="col-auto" style="min-width: 200px">
                 <q-select
@@ -34,7 +34,7 @@
               <div class="row no-wrap items-stretch workspace-split-pane">
                 <div class="col workspace-entity-list-pane">
                   <ItemSelectionList
-                    :items="entityEntries"
+                    :items="filteredEntityEntries"
                     label-key="label"
                     bordered
                     @select="onEntitySelect"
@@ -68,7 +68,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import WorkspaceSearch from 'src/components/WorkspaceSearch.vue'
 import ItemSelectionList from 'src/components/ItemSelectionList.vue'
 import EntityDetailView from 'src/components/details/EntityDetailView.vue'
 import QuickLinksCard from 'src/components/QuickLinksCard.vue'
@@ -104,6 +103,7 @@ const selectedBookId = computed({
   },
 })
 const selectedEntityType = ref('all')
+const searchEntityText = ref('')
 const selectedEntity = ref(null)
 
 watch(
@@ -457,6 +457,15 @@ const entityEntries = computed(() => {
         })),
       ]
   }
+})
+
+const filteredEntityEntries = computed(() => {
+  const search = searchEntityText.value.toLowerCase().trim()
+  if (!search) {
+    return entityEntries.value
+  }
+
+  return entityEntries.value.filter((entry) => entry.label.toLowerCase().includes(search))
 })
 
 watch(

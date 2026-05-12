@@ -1,11 +1,5 @@
 <template>
   <div>
-    <div class="row q-col-gutter-md items-center q-mb-md">
-      <div class="col-12 col-md-7">
-        <WorkspaceSearch v-model="selectedBookId" :items="bookOptions" />
-      </div>
-    </div>
-
     <div class="row q-col-gutter-md items-stretch">
       <div class="col-12 col-md-8">
         <q-card bordered flat class="interactive-card q-hoverable cursor-pointer">
@@ -31,17 +25,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import WorkspaceSearch from 'src/components/WorkspaceSearch.vue'
 import ItemSelectionList from 'src/components/ItemSelectionList.vue'
 import QuickLinksCard from 'src/components/QuickLinksCard.vue'
-import { createMockLibraryData } from 'src/data/mockLibraryData'
-
-const { books: mockBooks } = createMockLibraryData()
-
-const selectedBookId = ref(null)
-
-const bookOptions = computed(() => mockBooks)
 
 const shareControls = [
   'Project visibility: Private / Shared / Public read-only',

@@ -1,24 +1,26 @@
 <template>
   <div>
-    <div class="row q-col-gutter-md items-center q-mb-md">
-      <div class="col-12 col-md-7">
-        <WorkspaceSearch v-model="selectedBookId" :items="bookOptions" />
-      </div>
-      <div class="col-12 col-md-5">
-        <q-chip outline color="primary" icon="groups"> Family / Hierarchy / Links </q-chip>
-      </div>
-    </div>
-
     <div class="row q-col-gutter-md items-stretch">
       <div class="col-12 col-md-9">
         <q-card bordered flat>
-          <q-card-section class="text-subtitle1 text-weight-medium"
-            >Genealogy Canvas</q-card-section
-          >
+          <q-card-section class="row items-center q-col-gutter-md q-pa-md q-pb-sm">
+            <div class="col">
+              <div class="text-subtitle1 text-weight-medium">Genealogy Canvas</div>
+            </div>
+            <div class="col-auto" style="min-width: 250px">
+              <q-input
+                v-model="searchCharacterText"
+                outlined
+                dense
+                placeholder="Search characters..."
+                clearable
+              />
+            </div>
+          </q-card-section>
           <q-separator />
           <q-card-section>
             <div class="row q-col-gutter-sm">
-              <div v-for="node in graphNodes" :key="node.id" class="col-6 col-sm-4">
+              <div v-for="node in filteredGraphNodes" :key="node.id" class="col-6 col-sm-4">
                 <q-card bordered class="cursor-pointer" @click="selectedCharacterId = node.id">
                   <q-card-section class="text-center">
                     <q-avatar color="primary" text-color="white" class="q-mb-sm">{{
@@ -52,7 +54,6 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import WorkspaceSearch from 'src/components/WorkspaceSearch.vue'
 import EntityDetailView from 'src/components/details/EntityDetailView.vue'
 import { createMockLibraryData, getMockWorkspaceData } from 'src/data/mockLibraryData'
 import { useBookWorkspaceStore } from 'src/stores/bookWorkspace'
@@ -70,6 +71,7 @@ const selectedBookId = computed({
   },
 })
 const selectedCharacterId = ref(null)
+const searchCharacterText = ref('')
 
 watch(
   bookOptions,
@@ -103,6 +105,15 @@ const graphNodes = computed(() => {
     id: character.id,
     label: character.name,
   }))
+})
+
+const filteredGraphNodes = computed(() => {
+  const search = searchCharacterText.value.toLowerCase().trim()
+  if (!search) {
+    return graphNodes.value
+  }
+
+  return graphNodes.value.filter((node) => node.label.toLowerCase().includes(search))
 })
 
 const selectedCharacter = computed(() => {

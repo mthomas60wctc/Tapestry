@@ -2,7 +2,7 @@
   <q-layout view="hHh lpR fFf">
     <q-header elevated>
       <q-toolbar>
-        <q-avatar color="primary" text-color="white" rounded size="40px">TP</q-avatar>
+        <q-avatar color="primary" rounded size="40px">TP</q-avatar>
         <div class="column q-ml-sm">
           <div class="text-subtitle1 text-weight-bold">Tapestry</div>
           <div class="text-caption text-white-7">
@@ -21,11 +21,33 @@
           @click="toggleDarkMode"
         />
 
-        <q-chip color="accent" icon="account_circle">Account</q-chip>
+        <q-chip color="accent" text-color="white" icon="account_circle">Account</q-chip>
       </q-toolbar>
 
-      <div class="q-px-md q-pb-sm q-pt-xs">
-        <q-tabs dense align="center" narrow-indicator>
+      <div class="q-px-md q-pb-sm q-pt-xs row items-center">
+        <q-btn flat dense no-caps class="text-left" style="min-width: 160px">
+          <div class="text-subtitle2 text-weight-bold">{{ currentBookTitle }}</div>
+          <q-menu anchor="bottom left" self="top left">
+            <q-list style="min-width: 250px">
+              <q-item
+                v-for="book in bookOptions"
+                :key="book.id"
+                clickable
+                v-close-popup
+                :active="book.id === selectedBookId"
+                active-class="bg-primary text-white"
+                @click="selectedBookId = book.id"
+              >
+                <q-item-section>
+                  <q-item-label>{{ book.title }}</q-item-label>
+                  <q-item-label caption>{{ book.author }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
+        </q-btn>
+        <q-separator vertical />
+        <q-tabs dense align="left" narrow-indicator>
           <q-route-tab to="/dashboard" label="Dashboard" exact />
           <q-route-tab to="/workspace" label="Workspace" />
           <q-route-tab to="/timeline" label="Timeline" />
@@ -51,9 +73,34 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
+import { useBookLibraryStore } from 'src/stores/bookLibrary'
+import { useBookWorkspaceStore } from 'src/stores/bookWorkspace'
+import { createMockLibraryData } from 'src/data/mockLibraryData'
 
 const $q = useQuasar()
 const darkMode = ref(false)
+const bookStore = useBookLibraryStore()
+const workspaceStore = useBookWorkspaceStore()
+
+const { books: mockBooks } = createMockLibraryData()
+
+const bookOptions = computed(() => {
+  const userBooks = bookStore.userBooks || []
+  if (userBooks.length) return userBooks
+  return mockBooks
+})
+
+const selectedBookId = computed({
+  get: () => workspaceStore.currentBookId,
+  set: (value) => {
+    workspaceStore.currentBookId = value
+  },
+})
+
+const currentBookTitle = computed(() => {
+  const currentBook = bookOptions.value.find((book) => book.id === selectedBookId.value)
+  return currentBook?.title || 'Select Book'
+})
 
 const isDarkMode = computed(() => darkMode.value)
 
@@ -73,6 +120,11 @@ function toggleDarkMode() {
 onMounted(() => {
   if (typeof window === 'undefined') {
     return
+  }
+
+  // Initialize book if not set
+  if (!selectedBookId.value && bookOptions.value.length) {
+    selectedBookId.value = bookOptions.value[0].id
   }
 
   const storedValue = window.localStorage.getItem('tapestry-dark-mode')
