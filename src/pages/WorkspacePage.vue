@@ -85,6 +85,8 @@
       @save="saveLocation"
       @delete="deleteLocation"
     />
+
+    <NewBookModal v-model="bookModalOpen" :book="bookDraft" @save="saveBook" @delete="deleteBook" />
   </div>
 </template>
 
@@ -99,6 +101,7 @@ import EntityDetailView from 'src/components/details/EntityDetailView.vue'
 import CharacterModal from 'src/components/CharacterModal.vue'
 import EventModal from 'src/components/EventModal.vue'
 import LocationModal from 'src/components/LocationModal.vue'
+import NewBookModal from 'src/components/NewBookModal.vue'
 import { useBookLibraryStore } from 'src/stores/bookLibrary'
 import { useBookWorkspaceStore } from 'src/stores/bookWorkspace'
 import {
@@ -138,9 +141,11 @@ const workspaceData = ref(null)
 const characterModalOpen = ref(false)
 const eventModalOpen = ref(false)
 const locationModalOpen = ref(false)
+const bookModalOpen = ref(false)
 const characterDraft = ref(null)
 const eventDraft = ref(null)
 const locationDraft = ref(null)
+const bookDraft = ref(null)
 
 function cloneEntity(entity) {
   if (!entity) return null
@@ -317,6 +322,11 @@ function openLocationModal(entity = null) {
   locationModalOpen.value = true
 }
 
+function openBookModal(entity = null) {
+  bookDraft.value = cloneEntity(entity || workspaceData.value?.book)
+  bookModalOpen.value = true
+}
+
 function upsertEntity(collection, entity) {
   const items = [...(workspaceData.value?.[collection] || [])]
   const index = items.findIndex((item) => item.id === entity.id)
@@ -356,10 +366,9 @@ function onEntityEdit() {
     return
   }
 
-  // if (selectedEntity.value?.type === 'book') {
-  //   openBookModal(entity)
-  // } else
-  if (selectedEntity.value?.type === 'character') {
+  if (selectedEntity.value?.type === 'book') {
+    openBookModal(entity)
+  } else if (selectedEntity.value?.type === 'character') {
     openCharacterModal(entity)
   } else if (selectedEntity.value?.type === 'event') {
     openEventModal(entity)
@@ -368,46 +377,60 @@ function onEntityEdit() {
   }
 }
 
-// function confirmDeleteBook(book) {
-//   if (!book?.id) {
-//     return
-//   }
+function saveBook(payload) {
+  if (!workspaceData.value) {
+    return
+  }
 
-//   $q.dialog({
-//     title: 'Delete book?',
-//     message: `Delete "${book.title || 'Untitled Book'}" from your library? This cannot be undone.`,
-//     cancel: true,
-//     persistent: true,
-//     ok: {
-//       label: 'Delete',
-//       color: 'negative',
-//       unelevated: true,
-//     },
-//   }).onOk(async () => {
-//     try {
-//       await bookStore.deleteBook(book.id)
+  const nextBook = payload?.entity || payload
+  if (!nextBook?.id) {
+    return
+  }
 
-//       if (workspaceStore.currentBookId === book.id) {
-//         workspaceStore.currentBookId = null
-//       }
+  workspaceData.value = {
+    ...workspaceData.value,
+    book: {
+      ...workspaceData.value.book,
+      ...nextBook,
+      id: nextBook.id,
+    },
+  }
 
-//       selectedEntity.value = null
-//       workspaceData.value = null
+  if (selectedEntity.value?.type === 'book') {
+    setSelectedEntry(workspaceData.value.book, 'book')
+  }
 
-//       const fallbackBookId = bookStore.userBooks?.[0]?.id || null
-//       if (fallbackBookId) {
-//         workspaceStore.currentBookId = fallbackBookId
-//       } else {
-//         router.push('/dashboard')
-//       }
+  saveCurrentWorkspace()
+}
 
-//       $q.notify({ type: 'positive', message: 'Book deleted' })
-//     } catch (error) {
-//       console.warn('Unable to delete book:', error)
-//       $q.notify({ type: 'negative', message: 'Unable to delete book' })
-//     }
-//   })
-// }
+async function deleteBook(bookId) {
+  if (!bookId) {
+    return
+  }
+
+  const currentBook = workspaceData.value?.book
+  const title = currentBook?.title || 'Untitled Book'
+  const confirmed = window.confirm(`Delete "${title}" from your library? This cannot be undone.`)
+  if (!confirmed) {
+    return
+  }
+
+  await bookStore.deleteBook(bookId)
+
+  if (workspaceStore.currentBookId === bookId) {
+    workspaceStore.currentBookId = null
+  }
+
+  selectedEntity.value = null
+  workspaceData.value = null
+
+  const fallbackBookId = bookStore.userBooks?.[0]?.id || null
+  if (fallbackBookId) {
+    workspaceStore.currentBookId = fallbackBookId
+  } else {
+    router.push('/dashboard')
+  }
+}
 
 function saveCharacter(payload) {
   if (!workspaceData.value) {

@@ -27,10 +27,15 @@
               <div class="text-body2">Waiting for your library to sync.</div>
             </div>
             <div v-else-if="!filteredBooks.length" class="text-center text-grey-7 q-py-xl">
-              <div class="text-subtitle1 text-weight-medium q-mb-xs">No books in Firestore yet</div>
-              <div class="text-body2">Create a new book or seed Firestore to see it here.</div>
+              <div class="text-subtitle1 text-weight-medium q-mb-xs">No books yet</div>
+              <div class="text-body2">Add a new book to see it here.</div>
             </div>
-            <BookGrid v-else :books="filteredBooks" @select="openWorkspace" />
+            <BookGrid
+              v-else
+              :books="filteredBooks"
+              @select="openWorkspace"
+              @edit="openBookEditor"
+            />
           </q-card-section>
         </q-card>
       </div>
@@ -46,7 +51,13 @@
     </div>
 
     <GoogleBooksSearchModal v-model="googleBooksOpen" @select="onBookSelected" />
-    <NewBookModal v-model="newBookOpen" :prepopulate="prepopulatedBook" @save="addBook" />
+    <NewBookModal
+      v-model="newBookOpen"
+      :prepopulate="prepopulatedBook"
+      :book="editingBook"
+      @save="saveBook"
+      @delete="deleteBook"
+    />
   </div>
 </template>
 
@@ -72,6 +83,7 @@ const searchQuery = ref('')
 const googleBooksOpen = ref(false)
 const newBookOpen = ref(false)
 const prepopulatedBook = ref(null)
+const editingBook = ref(null)
 
 const filteredBooks = computed(() => {
   const q = String(searchQuery.value || '')
@@ -95,11 +107,23 @@ const recentEdits = computed(() =>
 
 function openNewBook() {
   prepopulatedBook.value = null
+  editingBook.value = null
   googleBooksOpen.value = true
 }
 
 function onBookSelected(bookData) {
   prepopulatedBook.value = bookData
+  editingBook.value = null
+  newBookOpen.value = true
+}
+
+function openBookEditor(book) {
+  if (!book?.id) {
+    return
+  }
+
+  prepopulatedBook.value = null
+  editingBook.value = book
   newBookOpen.value = true
 }
 
@@ -126,5 +150,33 @@ function addBook(book) {
     cover: book.cover || String(books.value.length + 1).padStart(2, '0'),
   })
   prepopulatedBook.value = null
+}
+
+function saveBook(book) {
+  if (editingBook.value?.id) {
+    void bookLibraryStore.updateBook(book)
+  } else {
+    addBook(book)
+  }
+
+  editingBook.value = null
+  prepopulatedBook.value = null
+}
+
+async function deleteBook(bookId) {
+  if (!bookId) return
+
+  const book = bookLibraryStore.getBook(bookId)
+  const title = book?.title || 'this book'
+  const confirmed = window.confirm(`Delete "${title}" from your library? This cannot be undone.`)
+  if (!confirmed) {
+    return
+  }
+
+  await bookLibraryStore.deleteBook(bookId)
+
+  if (editingBook.value?.id === bookId) {
+    editingBook.value = null
+  }
 }
 </script>

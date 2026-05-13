@@ -5,6 +5,14 @@
     class="full-height book-card cursor-pointer q-hoverable"
     @click="emit('select', book)"
   >
+    <q-btn
+      flat
+      round
+      dense
+      icon="edit"
+      class="book-card-edit-btn"
+      @click.stop="emit('edit', book)"
+    />
     <div class="row no-wrap items-start">
       <div class="book-cover-container">
         <div class="book-cover">
@@ -24,7 +32,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-const emit = defineEmits(['select'])
+const emit = defineEmits(['select', 'edit'])
 
 const props = defineProps({
   book: { type: Object, required: true },
@@ -49,8 +57,17 @@ const avatarText = computed(() => {
 </script>
 <style scoped>
 .book-card {
+  position: relative;
   background-color: #f5f5f5;
   color: #333;
+}
+
+.book-card-edit-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 :global(.body--dark) .book-card {

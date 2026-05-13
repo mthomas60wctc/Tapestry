@@ -2,7 +2,7 @@
   <q-dialog v-model="dialogModel">
     <q-card style="min-width: 600px; max-width: 900px">
       <q-card-section>
-        <div class="text-h6">New Book Details</div>
+        <div class="text-h6">{{ isEditing ? 'Edit Book' : 'New Book Details' }}</div>
         <div class="text-caption text-grey-7">Complete your book information</div>
       </q-card-section>
 
@@ -132,7 +132,8 @@
 
       <q-card-actions align="right" class="q-pa-md">
         <q-btn flat label="Cancel" v-close-popup />
-        <q-btn label="Save Book" color="primary" unelevated @click="saveBook" />
+        <q-btn v-if="isEditing" flat color="negative" label="Delete" @click="onDelete" />
+        <q-btn :label="submitLabel" color="primary" unelevated @click="saveBook" />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -151,9 +152,14 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  // When provided, the modal becomes edit-capable for this book
+  book: {
+    type: Object,
+    default: null,
+  },
 })
 
-const emit = defineEmits(['update:modelValue', 'save'])
+const emit = defineEmits(['update:modelValue', 'save', 'delete'])
 
 const formRef = ref(null)
 const fileInputRef = ref(null)
@@ -177,6 +183,9 @@ const dialogModel = computed({
   set: (value) => emit('update:modelValue', value),
 })
 
+const isEditing = computed(() => !!props.book)
+const submitLabel = computed(() => (isEditing.value ? 'Save Changes' : 'Save Book'))
+
 const form = reactive(createEmptyForm())
 
 watch(
@@ -184,6 +193,24 @@ watch(
   (isOpen) => {
     if (isOpen) {
       resetForm()
+      // If editing an existing book, populate from `book` first
+      if (props.book) {
+        Object.assign(form, {
+          title: props.book.title || '',
+          author: props.book.author || '',
+          series: props.book.series || '',
+          genre: props.book.genre || '',
+          status: props.book.status || 'in-progress',
+          visibility: props.book.visibility || 'private',
+          description: props.book.description || '',
+          cover: props.book.cover || props.book.coverImageUrl || '',
+        })
+        if (props.book.cover || props.book.coverImageUrl) {
+          coverPreview.value = props.book.cover || props.book.coverImageUrl || ''
+        }
+        return
+      }
+
       if (props.prepopulate) {
         Object.assign(form, {
           title: props.prepopulate.title || '',
@@ -199,6 +226,26 @@ watch(
           coverPreview.value = props.prepopulate.coverUrl
         }
       }
+    }
+  },
+)
+
+watch(
+  () => props.book,
+  (b) => {
+    if (!b) return
+    if (props.modelValue) {
+      Object.assign(form, {
+        title: b.title || '',
+        author: b.author || '',
+        series: b.series || '',
+        genre: b.genre || '',
+        status: b.status || 'in-progress',
+        visibility: b.visibility || 'private',
+        description: b.description || '',
+        cover: b.cover || b.coverImageUrl || '',
+      })
+      coverPreview.value = b.cover || b.coverImageUrl || ''
     }
   },
 )
@@ -224,6 +271,12 @@ function resetForm() {
 
 function closeDialog() {
   dialogModel.value = false
+}
+
+function onDelete() {
+  if (!props.book?.id) return
+  emit('delete', props.book.id)
+  closeDialog()
 }
 
 function handleCoverUrlChange() {
@@ -267,8 +320,9 @@ async function saveBook() {
   }
 
   const now = new Date()
+  const existingBook = props.book || {}
   const book = ModelFactory.createBook({
-    id: globalThis.crypto?.randomUUID?.() ?? `book-${Date.now()}`,
+    id: existingBook.id || globalThis.crypto?.randomUUID?.() || `book-${Date.now()}`,
     title: form.title.trim(),
     author: form.author.trim(),
     series: form.series.trim() || null,
@@ -277,7 +331,7 @@ async function saveBook() {
     visibility: form.visibility,
     description: form.description.trim(),
     cover: form.cover || null,
-    createdAt: now,
+    createdAt: existingBook.createdAt || now,
     updatedAt: now,
   })
 

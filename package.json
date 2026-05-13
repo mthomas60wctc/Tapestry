@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@quasar/extras": "^1.16.4",
+    "feather-icons": "^4.29.2",
     "firebase": "^12.13.0",
     "pinia": "^3.0.1",
     "quasar": "^2.16.0",

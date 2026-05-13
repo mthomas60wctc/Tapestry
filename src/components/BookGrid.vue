@@ -4,14 +4,14 @@
       <q-banner class="bg-grey-1 text-center">No books found</q-banner>
     </div>
     <div v-else v-for="book in books" :key="book.id" class="col-12 col-sm-6 col-md-4">
-      <BookCard :book="book" @select="emit('select', book)" />
+      <BookCard :book="book" @select="emit('select', book)" @edit="emit('edit', book)" />
     </div>
   </div>
 </template>
 
 <script setup>
 import BookCard from 'src/components/BookCard.vue'
-const emit = defineEmits(['select'])
+const emit = defineEmits(['select', 'edit'])
 
 // eslint-disable-next-line no-unused-vars
 const props = defineProps({
