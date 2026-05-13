@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="dialogModel" @hide="onDialogHide">
-    <q-card style="min-width: min(92vw, 720px)">
+    <q-card style="min-width: min(92vw, 860px)">
       <q-card-section>
         <div class="text-h6">{{ isEditing ? 'Edit Character' : 'Add Character' }}</div>
         <div class="text-caption text-grey-7">Update the core character details for this book.</div>
@@ -57,7 +57,6 @@
                 hide-bottom-space
               />
             </div>
-
             <div class="col-12">
               <q-input
                 v-model="form.description"
@@ -104,6 +103,51 @@
               </q-select>
             </div>
           </div>
+
+          <div class="q-mb-md">
+            <div class="text-subtitle2 q-mb-sm">Related Entities</div>
+            <div class="row q-col-gutter-md q-mb-sm">
+              <div class="col-12 col-md-4">
+                <q-select
+                  v-model="form.relatedCharacterIds"
+                  :options="characterOptions"
+                  label="Related Characters"
+                  outlined
+                  dense
+                  multiple
+                  use-chips
+                  emit-value
+                  map-options
+                />
+              </div>
+              <div class="col-12 col-md-4">
+                <q-select
+                  v-model="form.relatedEventIds"
+                  :options="eventOptions"
+                  label="Related Events"
+                  outlined
+                  dense
+                  multiple
+                  use-chips
+                  emit-value
+                  map-options
+                />
+              </div>
+              <div class="col-12 col-md-4">
+                <q-select
+                  v-model="form.relatedSettingIds"
+                  :options="settingOptions"
+                  label="Related Settings"
+                  outlined
+                  dense
+                  multiple
+                  use-chips
+                  emit-value
+                  map-options
+                />
+              </div>
+            </div>
+          </div>
         </q-form>
       </q-card-section>
 
@@ -111,18 +155,29 @@
         <q-btn v-if="isEditing" flat label="Delete" color="negative" @click="onDelete" />
         <div class="col" />
         <q-btn flat label="Cancel" color="primary" v-close-popup />
-        <q-btn
-          :label="isEditing ? 'Save Changes' : 'Create Character'"
-          color="primary"
-          @click="save"
-        />
+        <q-btn :label="submitLabel" color="primary" @click="save" />
       </q-card-actions>
     </q-card>
   </q-dialog>
+
+  <RelationshipDetailsModal
+    v-model="relationshipModalOpen"
+    source-type="character"
+    :related-drafts="relationshipDrafts"
+    @save="finalizeSave"
+  />
 </template>
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
+import RelationshipDetailsModal from 'src/components/RelationshipDetailsModal.vue'
+import {
+  buildRelationshipPayloads,
+  collectRelationshipDrafts,
+  collectSelectedRelationshipDrafts,
+  getEntityOptions,
+  getManagedTargetTypes,
+} from 'src/utils/relationshipForm'
 
 const props = defineProps({
   modelValue: {
@@ -137,6 +192,10 @@ const props = defineProps({
     type: String,
     default: null,
   },
+  workspace: {
+    type: Object,
+    default: null,
+  },
   tagOptions: {
     type: Array,
     default: () => [],
@@ -146,6 +205,9 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'save', 'delete'])
 
 const formRef = ref(null)
+const relationshipModalOpen = ref(false)
+const pendingEntity = ref(null)
+const relationshipDrafts = ref([])
 
 const statusOptions = [
   { label: 'Active', value: 'active' },
@@ -162,8 +224,6 @@ const roleOptions = [
   { label: 'Love Interest', value: 'love-interest' },
 ]
 
-let tagSelectOptions = ref(props.tagOptions)
-
 const dialogModel = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value),
@@ -172,6 +232,28 @@ const dialogModel = computed({
 const isEditing = computed(() => !!props.entity)
 
 const form = reactive(createEmptyForm())
+
+const characterOptions = computed(() =>
+  getEntityOptions(props.workspace, 'character', props.entity?.id),
+)
+const eventOptions = computed(() => getEntityOptions(props.workspace, 'event', props.entity?.id))
+const settingOptions = computed(() =>
+  getEntityOptions(props.workspace, 'setting', props.entity?.id),
+)
+
+const hasRelatedSelections = computed(
+  () =>
+    form.relatedCharacterIds.length || form.relatedEventIds.length || form.relatedSettingIds.length,
+)
+
+const submitLabel = computed(() => {
+  if (hasRelatedSelections.value) {
+    return 'Next'
+  }
+  return isEditing.value ? 'Save Changes' : 'Create Character'
+})
+
+let tagSelectOptions = ref(props.tagOptions)
 
 watch(
   () => props.modelValue,
@@ -214,6 +296,9 @@ function createEmptyForm() {
     background: '',
     imageUrl: '',
     tags: [],
+    relatedCharacterIds: [],
+    relatedEventIds: [],
+    relatedSettingIds: [],
   }
 }
 
@@ -230,6 +315,9 @@ function toList(value) {
 
 function resetForm() {
   const entity = props.entity || {}
+  const targetTypes = getManagedTargetTypes('character')
+  const relatedDrafts = collectRelationshipDrafts(props.workspace, entity, 'character', targetTypes)
+
   Object.assign(form, createEmptyForm(), {
     name: entity.name || '',
     aliasesText: toText(entity.aliases),
@@ -240,6 +328,15 @@ function resetForm() {
     background: entity.background || '',
     imageUrl: entity.imageUrl || '',
     tags: [...(entity.tags || [])],
+    relatedCharacterIds: relatedDrafts
+      .filter((draft) => draft.targetType === 'character')
+      .map((draft) => draft.targetId),
+    relatedEventIds: relatedDrafts
+      .filter((draft) => draft.targetType === 'event')
+      .map((draft) => draft.targetId),
+    relatedSettingIds: relatedDrafts
+      .filter((draft) => draft.targetType === 'setting')
+      .map((draft) => draft.targetId),
   })
 }
 
@@ -255,8 +352,7 @@ async function save() {
 
   const now = new Date()
   const entity = props.entity || {}
-
-  emit('save', {
+  const baseEntity = {
     ...entity,
     id: entity.id || globalThis.crypto?.randomUUID?.() || `character-${Date.now()}`,
     bookId: entity.bookId || props.bookId,
@@ -271,8 +367,45 @@ async function save() {
     tags: [...form.tags],
     createdAt: entity.createdAt || now,
     updatedAt: now,
+  }
+
+  const relatedDrafts = collectSelectedRelationshipDrafts(
+    props.workspace,
+    baseEntity,
+    'character',
+    {
+      character: form.relatedCharacterIds,
+      event: form.relatedEventIds,
+      setting: form.relatedSettingIds,
+    },
+  )
+
+  if (relatedDrafts.length) {
+    pendingEntity.value = baseEntity
+    relationshipDrafts.value = relatedDrafts
+    relationshipModalOpen.value = true
+    return
+  }
+
+  emit('save', {
+    entity: baseEntity,
+    relationships: buildRelationshipPayloads(baseEntity, 'character', []),
+  })
+  dialogModel.value = false
+}
+
+function finalizeSave(drafts) {
+  if (!pendingEntity.value) {
+    return
+  }
+
+  emit('save', {
+    entity: pendingEntity.value,
+    relationships: buildRelationshipPayloads(pendingEntity.value, 'character', drafts),
   })
 
+  pendingEntity.value = null
+  relationshipDrafts.value = []
   dialogModel.value = false
 }
 

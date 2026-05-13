@@ -12,7 +12,15 @@
 </template>
 
 <script setup>
+defineProps({
+  modelValue: {
+    type: String,
+    default: '',
+  },
+})
+
 const emit = defineEmits(['update:modelValue'])
+
 function onUpdate(val) {
   emit('update:modelValue', val)
 }

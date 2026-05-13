@@ -1,75 +1,73 @@
 <template>
   <div>
-    <div>
-      <div class="row q-col-gutter-md items-stretch">
-        <div class="col-12 col-lg-8">
-          <q-card bordered flat>
-            <q-card-section class="row items-center q-col-gutter-md q-pa-md q-pb-sm">
-              <div class="col">
-                <div class="text-subtitle1 text-weight-medium">Threads</div>
+    <div class="row q-col-gutter-md items-stretch">
+      <div class="col-12 col-lg-8">
+        <q-card bordered flat>
+          <q-card-section class="row items-center q-col-gutter-md q-pa-md q-pb-sm">
+            <div class="col">
+              <div class="text-subtitle1 text-weight-medium">Threads</div>
+            </div>
+            <div class="col-auto" style="min-width: 200px">
+              <q-input
+                v-model="searchEntityText"
+                outlined
+                dense
+                placeholder="Search entities..."
+                clearable
+              />
+            </div>
+            <div class="col-auto" style="min-width: 200px">
+              <q-select
+                v-model="selectedEntityType"
+                :options="entityFilterOptions"
+                outlined
+                dense
+                emit-value
+                map-options
+                label="Filter Entity"
+              />
+            </div>
+            <div class="col-auto">
+              <div class="row q-gutter-sm justify-end">
+                <q-btn color="primary" icon="person_add" @click="openCharacterModal()" />
+                <q-btn color="primary" icon="event" @click="openEventModal()" />
+                <q-btn color="primary" icon="place" @click="openLocationModal()" />
               </div>
-              <div class="col-auto" style="min-width: 200px">
-                <q-input
-                  v-model="searchEntityText"
-                  outlined
-                  dense
-                  placeholder="Search entities..."
-                  clearable
+            </div>
+          </q-card-section>
+          <q-separator />
+          <q-card-section class="q-pa-none">
+            <div class="row no-wrap items-stretch workspace-split-pane">
+              <div class="col workspace-entity-list-pane">
+                <ItemSelectionList
+                  :items="filteredEntityEntries"
+                  label-key="label"
+                  bordered
+                  @select="onEntitySelect"
                 />
               </div>
-              <div class="col-auto" style="min-width: 200px">
-                <q-select
-                  v-model="selectedEntityType"
-                  :options="entityFilterOptions"
-                  outlined
-                  dense
-                  emit-value
-                  map-options
-                  label="Filter Entity"
+              <div class="col workspace-entity-detail-pane">
+                <EntityDetailView
+                  class="q-pa-sm"
+                  :entity="selectedEntity?.entity"
+                  :type="selectedEntity?.type"
+                  :workspace="workspaceData"
+                  @edit="onEntityEdit"
+                  @select-entity="onDetailEntitySelect"
                 />
               </div>
-              <div class="col-auto">
-                <div class="row q-gutter-sm justify-end">
-                  <q-btn color="primary" icon="person_add" @click="openCharacterModal()" />
-                  <q-btn color="primary" icon="event" @click="openEventModal()" />
-                  <q-btn color="primary" icon="place" @click="openLocationModal()" />
-                </div>
-              </div>
-            </q-card-section>
-            <q-separator />
-            <q-card-section class="q-pa-none">
-              <div class="row no-wrap items-stretch workspace-split-pane">
-                <div class="col workspace-entity-list-pane">
-                  <ItemSelectionList
-                    :items="filteredEntityEntries"
-                    label-key="label"
-                    bordered
-                    @select="onEntitySelect"
-                  />
-                </div>
-                <div class="col workspace-entity-detail-pane">
-                  <EntityDetailView
-                    class="q-pa-sm"
-                    :entity="selectedEntity?.entity"
-                    :type="selectedEntity?.type"
-                    :workspace="workspaceData"
-                    @edit="onEntityEdit"
-                    @select-entity="onDetailEntitySelect"
-                  />
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
 
-        <div class="col-12 col-lg-4">
-          <QuickLinksCard
-            title="Related Links"
-            :items="relatedLinks"
-            side-key="side"
-            @select="onRelatedLinkSelect"
-          />
-        </div>
+      <div class="col-12 col-lg-4">
+        <QuickLinksCard
+          title="Related Links"
+          :items="relatedLinks"
+          side-key="side"
+          @select="onRelatedLinkSelect"
+        />
       </div>
     </div>
 
@@ -77,6 +75,7 @@
       v-model="characterModalOpen"
       :book-id="selectedBookId"
       :entity="characterDraft"
+      :workspace="workspaceData"
       :tag-options="tagOptions"
       @save="saveCharacter"
       @delete="deleteCharacter"
@@ -86,8 +85,7 @@
       v-model="eventModalOpen"
       :book-id="selectedBookId"
       :entity="eventDraft"
-      :character-options="characterOptions"
-      :setting-options="settingOptions"
+      :workspace="workspaceData"
       :tag-options="tagOptions"
       @save="saveEvent"
       @delete="deleteEvent"
@@ -97,8 +95,7 @@
       v-model="locationModalOpen"
       :book-id="selectedBookId"
       :entity="locationDraft"
-      :character-options="characterOptions"
-      :parent-setting-options="parentSettingOptions"
+      :workspace="workspaceData"
       :tag-options="tagOptions"
       @save="saveLocation"
       @delete="deleteLocation"
@@ -162,22 +159,58 @@ function cloneWorkspaceData(workspace) {
     return null
   }
 
-  return globalThis.structuredClone
+  const cloned = globalThis.structuredClone
     ? globalThis.structuredClone(workspace)
     : JSON.parse(JSON.stringify(workspace))
+
+  // Clean up deprecated fields from entity models (graph refactor)
+  // Remove character/event/setting IDs arrays from entities - all connections now go through relationships
+  if (cloned.characters) {
+    cloned.characters = cloned.characters.map((char) => {
+      const cleaned = { ...char }
+      delete cleaned.relatedCharacterIds
+      delete cleaned.settingIds
+      delete cleaned.eventIds
+      return cleaned
+    })
+  }
+
+  if (cloned.events) {
+    cloned.events = cloned.events.map((event) => {
+      const cleaned = { ...event }
+      delete cleaned.characterIds
+      delete cleaned.settingIds
+      return cleaned
+    })
+  }
+
+  if (cloned.settings) {
+    cloned.settings = cloned.settings.map((setting) => {
+      const cleaned = { ...setting }
+      delete cleaned.relatedCharacterIds
+      delete cleaned.parentSettingId
+      return cleaned
+    })
+  }
+
+  return cloned
 }
 
 function cloneEntity(entity) {
   if (!entity) return null
   // Create a plain object copy from the entity, avoiding Proxy issues
-  return {
+  const cleaned = {
     ...entity,
     aliases: entity.aliases ? [...entity.aliases] : [],
     tags: entity.tags ? [...entity.tags] : [],
-    characterIds: entity.characterIds ? [...entity.characterIds] : [],
-    settingIds: entity.settingIds ? [...entity.settingIds] : [],
-    relatedCharacterIds: entity.relatedCharacterIds ? [...entity.relatedCharacterIds] : [],
   }
+  // Remove deprecated fields
+  delete cleaned.characterIds
+  delete cleaned.settingIds
+  delete cleaned.relatedCharacterIds
+  delete cleaned.eventIds
+  delete cleaned.parentSettingId
+  return cleaned
 }
 
 watch(
@@ -207,27 +240,6 @@ watch(
 )
 
 const selectedWorkspace = computed(() => workspaceData.value)
-
-const characterOptions = computed(() =>
-  (selectedWorkspace.value?.characters || []).map((character) => ({
-    label: character.name,
-    value: character.id,
-  })),
-)
-
-const settingOptions = computed(() =>
-  (selectedWorkspace.value?.settings || []).map((setting) => ({
-    label: setting.name,
-    value: setting.id,
-  })),
-)
-
-const parentSettingOptions = computed(() => {
-  const excludedId = locationDraft.value?.id || null
-  return (selectedWorkspace.value?.settings || [])
-    .filter((setting) => setting.id !== excludedId)
-    .map((setting) => ({ label: setting.name, value: setting.id }))
-})
 
 function collectUniqueTags(workspace) {
   const sources = [
@@ -275,15 +287,6 @@ function setSelectedEntry(entity, type) {
     return
   }
 
-  selectedEntityType.value =
-    type === 'character'
-      ? 'characters'
-      : type === 'event'
-        ? 'events'
-        : type === 'setting'
-          ? 'settings'
-          : selectedEntityType.value
-
   selectedEntity.value = {
     id: entity.id,
     label: type === 'character' ? entity.name : type === 'event' ? entity.title : entity.name,
@@ -313,6 +316,39 @@ function openLocationModal(entity = null) {
   locationModalOpen.value = true
 }
 
+function upsertEntity(collection, entity) {
+  const items = [...(workspaceData.value?.[collection] || [])]
+  const index = items.findIndex((item) => item.id === entity.id)
+  if (index === -1) {
+    items.push(entity)
+  } else {
+    items[index] = entity
+  }
+  return items
+}
+
+function syncRelationships(entityType, entity, relationships) {
+  if (!workspaceData.value) {
+    return
+  }
+
+  const nextRelationships = [...(workspaceData.value.relationships || [])].filter((rel) => {
+    if (rel.sourceId !== entity.id && rel.targetId !== entity.id) {
+      return true
+    }
+
+    // remove relationships involving this entity so the modal selections stay authoritative
+    return false
+  })
+
+  nextRelationships.push(...(relationships || []))
+
+  workspaceData.value = {
+    ...workspaceData.value,
+    relationships: nextRelationships,
+  }
+}
+
 function onEntityEdit() {
   const entity = selectedEntity.value?.entity
   if (!entity) {
@@ -328,58 +364,49 @@ function onEntityEdit() {
   }
 }
 
-function saveCharacter(character) {
+function saveCharacter(payload) {
   if (!workspaceData.value) {
     return
   }
 
-  const characters = [...(workspaceData.value.characters || [])]
-  const index = characters.findIndex((item) => item.id === character.id)
-  if (index === -1) {
-    characters.push(character)
-  } else {
-    characters[index] = character
-  }
+  const character = payload?.entity || payload
+
+  const characters = upsertEntity('characters', character)
 
   workspaceData.value = { ...workspaceData.value, characters }
   mergeBookTags(character.tags)
+  syncRelationships('character', character, payload?.relationships)
   setSelectedEntry(character, 'character')
 }
 
-function saveEvent(event) {
+function saveEvent(payload) {
   if (!workspaceData.value) {
     return
   }
 
-  const events = [...(workspaceData.value.events || [])]
-  const index = events.findIndex((item) => item.id === event.id)
-  if (index === -1) {
-    events.push(event)
-  } else {
-    events[index] = event
-  }
+  const event = payload?.entity || payload
+
+  const events = upsertEntity('events', event)
 
   events.sort((left, right) => (left.sequenceOrder ?? 0) - (right.sequenceOrder ?? 0))
   workspaceData.value = { ...workspaceData.value, events }
   mergeBookTags(event.tags)
+  syncRelationships('event', event, payload?.relationships)
   setSelectedEntry(event, 'event')
 }
 
-function saveLocation(setting) {
+function saveLocation(payload) {
   if (!workspaceData.value) {
     return
   }
 
-  const settings = [...(workspaceData.value.settings || [])]
-  const index = settings.findIndex((item) => item.id === setting.id)
-  if (index === -1) {
-    settings.push(setting)
-  } else {
-    settings[index] = setting
-  }
+  const setting = payload?.entity || payload
+
+  const settings = upsertEntity('settings', setting)
 
   workspaceData.value = { ...workspaceData.value, settings }
   mergeBookTags(setting.tags)
+  syncRelationships('setting', setting, payload?.relationships)
   setSelectedEntry(setting, 'setting')
 }
 
@@ -395,6 +422,12 @@ function deleteCharacter(characterId) {
   }
 
   workspaceData.value = { ...workspaceData.value, characters }
+  workspaceData.value = {
+    ...workspaceData.value,
+    relationships: (workspaceData.value.relationships || []).filter(
+      (rel) => rel.sourceId !== characterId && rel.targetId !== characterId,
+    ),
+  }
   selectedEntity.value = null
 }
 
@@ -410,6 +443,12 @@ function deleteEvent(eventId) {
   }
 
   workspaceData.value = { ...workspaceData.value, events }
+  workspaceData.value = {
+    ...workspaceData.value,
+    relationships: (workspaceData.value.relationships || []).filter(
+      (rel) => rel.sourceId !== eventId && rel.targetId !== eventId,
+    ),
+  }
   selectedEntity.value = null
 }
 
@@ -425,6 +464,12 @@ function deleteLocation(settingId) {
   }
 
   workspaceData.value = { ...workspaceData.value, settings }
+  workspaceData.value = {
+    ...workspaceData.value,
+    relationships: (workspaceData.value.relationships || []).filter(
+      (rel) => rel.sourceId !== settingId && rel.targetId !== settingId,
+    ),
+  }
   selectedEntity.value = null
 }
 
@@ -442,8 +487,6 @@ function getEntityCollection(workspace, type) {
       return workspace.events || []
     case 'setting':
       return workspace.settings || []
-    case 'relationship':
-      return workspace.relationships || []
     default:
       return []
   }
@@ -467,8 +510,6 @@ function formatDisplayName(entity, type) {
       return entity.title || 'Untitled Event'
     case 'setting':
       return entity.name || 'Unnamed Setting'
-    case 'relationship':
-      return entity.relationshipType || 'Relationship'
     default:
       return entity.name || entity.title || entity.id || 'Unknown'
   }
@@ -482,8 +523,6 @@ function getIconForType(type) {
     Event: 'event',
     setting: 'place',
     Setting: 'place',
-    relationship: 'link',
-    Relationship: 'link',
   }
   return iconMap[type] || null
 }
@@ -500,11 +539,15 @@ function addRelatedLink(items, seen, label, side, id) {
 }
 
 function collectCharacterLinks(workspace, character, items, seen) {
+  // Character-to-character relationships
   workspace.relationships
     .filter(
       (relationship) =>
-        (relationship.sourceId === character.id && relationship.sourceType === 'character') ||
-        (relationship.targetId === character.id && relationship.targetType === 'character'),
+        relationship.sourceType === 'character' && relationship.targetType === 'character',
+    )
+    .filter(
+      (relationship) =>
+        relationship.sourceId === character.id || relationship.targetId === character.id,
     )
     .forEach((relationship) => {
       const otherId =
@@ -518,47 +561,74 @@ function collectCharacterLinks(workspace, character, items, seen) {
       addRelatedLink(items, seen, `${formatDisplayName(other, 'character')}`, 'Character', other.id)
     })
 
-  workspace.events
-    .filter((event) => event.characterIds?.includes(character.id))
-    .forEach((event) => {
-      addRelatedLink(
-        items,
-        seen,
-        `Participates In: ${formatDisplayName(event, 'event')}`,
-        'Event',
-        event.id,
-      )
+  // Character-to-event relationships
+  workspace.relationships
+    .filter(
+      (relationship) =>
+        (relationship.sourceId === character.id &&
+          relationship.sourceType === 'character' &&
+          relationship.targetType === 'event') ||
+        (relationship.targetId === character.id &&
+          relationship.targetType === 'character' &&
+          relationship.sourceType === 'event'),
+    )
+    .forEach((relationship) => {
+      const eventId =
+        relationship.sourceType === 'event' ? relationship.sourceId : relationship.targetId
+      const event = findEntity(workspace, 'event', eventId)
+
+      if (!event) {
+        return
+      }
+
+      addRelatedLink(items, seen, `${formatDisplayName(event, 'event')}`, 'Event', event.id)
     })
 
-  workspace.settings
+  // Character-to-setting relationships
+  workspace.relationships
     .filter(
-      (setting) =>
-        setting.relatedCharacterIds?.includes(character.id) ||
-        workspace.relationships.some(
-          (relationship) =>
-            ((relationship.sourceId === character.id && relationship.sourceType === 'character') ||
-              (relationship.targetId === character.id &&
-                relationship.targetType === 'character')) &&
-            ((relationship.sourceId === setting.id && relationship.sourceType === 'setting') ||
-              (relationship.targetId === setting.id && relationship.targetType === 'setting')),
-        ),
+      (relationship) =>
+        (relationship.sourceId === character.id &&
+          relationship.sourceType === 'character' &&
+          relationship.targetType === 'setting') ||
+        (relationship.targetId === character.id &&
+          relationship.targetType === 'character' &&
+          relationship.sourceType === 'setting'),
     )
-    .forEach((setting) => {
-      addRelatedLink(
-        items,
-        seen,
-        `Associated With: ${formatDisplayName(setting, 'setting')}`,
-        'Setting',
-        setting.id,
-      )
+    .forEach((relationship) => {
+      const settingId =
+        relationship.sourceType === 'setting' ? relationship.sourceId : relationship.targetId
+      const setting = findEntity(workspace, 'setting', settingId)
+
+      if (!setting) {
+        return
+      }
+
+      addRelatedLink(items, seen, `${formatDisplayName(setting, 'setting')}`, 'Setting', setting.id)
     })
 }
 
 function collectEventLinks(workspace, event, items, seen) {
-  event.characterIds
-    ?.map((characterId) => findEntity(workspace, 'character', characterId))
-    .filter(Boolean)
-    .forEach((character) => {
+  // Event-to-character relationships
+  workspace.relationships
+    .filter(
+      (relationship) =>
+        (relationship.sourceId === event.id &&
+          relationship.sourceType === 'event' &&
+          relationship.targetType === 'character') ||
+        (relationship.targetId === event.id &&
+          relationship.targetType === 'event' &&
+          relationship.sourceType === 'character'),
+    )
+    .forEach((relationship) => {
+      const characterId =
+        relationship.sourceType === 'character' ? relationship.sourceId : relationship.targetId
+      const character = findEntity(workspace, 'character', characterId)
+
+      if (!character) {
+        return
+      }
+
       addRelatedLink(
         items,
         seen,
@@ -568,19 +638,51 @@ function collectEventLinks(workspace, event, items, seen) {
       )
     })
 
-  event.settingIds
-    ?.map((settingId) => findEntity(workspace, 'setting', settingId))
-    .filter(Boolean)
-    .forEach((setting) => {
+  // Event-to-setting relationships
+  workspace.relationships
+    .filter(
+      (relationship) =>
+        (relationship.sourceId === event.id &&
+          relationship.sourceType === 'event' &&
+          relationship.targetType === 'setting') ||
+        (relationship.targetId === event.id &&
+          relationship.targetType === 'event' &&
+          relationship.sourceType === 'setting'),
+    )
+    .forEach((relationship) => {
+      const settingId =
+        relationship.sourceType === 'setting' ? relationship.sourceId : relationship.targetId
+      const setting = findEntity(workspace, 'setting', settingId)
+
+      if (!setting) {
+        return
+      }
+
       addRelatedLink(items, seen, `${formatDisplayName(setting, 'setting')}`, 'Setting', setting.id)
     })
 }
 
 function collectSettingLinks(workspace, setting, items, seen) {
-  setting.relatedCharacterIds
-    ?.map((characterId) => findEntity(workspace, 'character', characterId))
-    .filter(Boolean)
-    .forEach((character) => {
+  // Setting-to-character relationships
+  workspace.relationships
+    .filter(
+      (relationship) =>
+        (relationship.sourceId === setting.id &&
+          relationship.sourceType === 'setting' &&
+          relationship.targetType === 'character') ||
+        (relationship.targetId === setting.id &&
+          relationship.targetType === 'setting' &&
+          relationship.sourceType === 'character'),
+    )
+    .forEach((relationship) => {
+      const characterId =
+        relationship.sourceType === 'character' ? relationship.sourceId : relationship.targetId
+      const character = findEntity(workspace, 'character', characterId)
+
+      if (!character) {
+        return
+      }
+
       addRelatedLink(
         items,
         seen,
@@ -590,9 +692,26 @@ function collectSettingLinks(workspace, setting, items, seen) {
       )
     })
 
-  workspace.events
-    .filter((event) => event.settingIds?.includes(setting.id))
-    .forEach((event) => {
+  // Setting-to-event relationships
+  workspace.relationships
+    .filter(
+      (relationship) =>
+        (relationship.sourceId === setting.id &&
+          relationship.sourceType === 'setting' &&
+          relationship.targetType === 'event') ||
+        (relationship.targetId === setting.id &&
+          relationship.targetType === 'setting' &&
+          relationship.sourceType === 'event'),
+    )
+    .forEach((relationship) => {
+      const eventId =
+        relationship.sourceType === 'event' ? relationship.sourceId : relationship.targetId
+      const event = findEntity(workspace, 'event', eventId)
+
+      if (!event) {
+        return
+      }
+
       addRelatedLink(items, seen, `${formatDisplayName(event, 'event')}`, 'Event', event.id)
     })
 }

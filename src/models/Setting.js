@@ -15,8 +15,6 @@ export class Setting {
     population = null,
     ruler = '', // who governs it
     firstAppearance = null, // event id
-    relatedCharacterIds = [], // characters associated with the setting
-    parentSettingId = null, // if nested (e.g., city within kingdom)
     imageUrl = null,
     tags = [],
     createdAt = new Date(),
@@ -33,8 +31,6 @@ export class Setting {
     this.population = population
     this.ruler = ruler
     this.firstAppearance = firstAppearance
-    this.relatedCharacterIds = relatedCharacterIds
-    this.parentSettingId = parentSettingId
     this.imageUrl = imageUrl
     this.tags = tags
     this.createdAt = createdAt

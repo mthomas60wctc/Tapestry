@@ -14,8 +14,6 @@ export class Event {
     pageEnd = null,
     sequenceOrder = 0, // numeric order for timeline sorting
     internalDate = null, // story-world date if applicable
-    characterIds = [], // participating characters
-    settingIds = [], // locations involved
     arc = '', // story arc identifier (e.g., 'romance', 'political-intrigue')
     emotionalTone = '', // 'happy', 'tragic', 'tense', 'turning-point', etc.
     tags = [],
@@ -33,8 +31,6 @@ export class Event {
     this.pageEnd = pageEnd
     this.sequenceOrder = sequenceOrder
     this.internalDate = internalDate
-    this.characterIds = characterIds
-    this.settingIds = settingIds
     this.arc = arc
     this.emotionalTone = emotionalTone
     this.tags = tags

@@ -94,44 +94,55 @@ const relatedEntities = computed(() => {
 
   const related = new Map()
 
-  // Add related characters from relationships
+  // Query ALL relationships where this character is involved
   props.workspace.relationships?.forEach((rel) => {
-    const isMentioned =
-      (rel.sourceId === props.character.id && rel.sourceType === 'character') ||
-      (rel.targetId === props.character.id && rel.targetType === 'character')
+    const isSource = rel.sourceId === props.character.id && rel.sourceType === 'character'
+    const isTarget = rel.targetId === props.character.id && rel.targetType === 'character'
 
-    if (isMentioned) {
-      const targetId = rel.sourceId === props.character.id ? rel.targetId : rel.sourceId
-      const targetChar = props.workspace.characters?.find((c) => c.id === targetId)
-      if (targetChar && rel.targetType === 'character') {
-        related.set(targetId, {
-          id: targetId,
-          label: `${targetChar.name} (${rel.relationshipType})`,
-          type: 'character',
+    if (isSource) {
+      // Character is the source - get target entity
+      let targetEntity = null
+      if (rel.targetType === 'character') {
+        targetEntity = props.workspace.characters?.find((c) => c.id === rel.targetId)
+      } else if (rel.targetType === 'event') {
+        targetEntity = props.workspace.events?.find((e) => e.id === rel.targetId)
+      } else if (rel.targetType === 'setting') {
+        targetEntity = props.workspace.settings?.find((s) => s.id === rel.targetId)
+      }
+
+      if (targetEntity) {
+        const label =
+          rel.targetType === 'character'
+            ? `${targetEntity.name} (${rel.relationshipType})`
+            : targetEntity.title || targetEntity.name || 'Untitled'
+        related.set(`${rel.targetType}-${rel.targetId}`, {
+          id: rel.targetId,
+          label,
+          type: rel.targetType,
         })
       }
-    }
-  })
+    } else if (isTarget) {
+      // Character is the target - get source entity
+      let sourceEntity = null
+      if (rel.sourceType === 'character') {
+        sourceEntity = props.workspace.characters?.find((c) => c.id === rel.sourceId)
+      } else if (rel.sourceType === 'event') {
+        sourceEntity = props.workspace.events?.find((e) => e.id === rel.sourceId)
+      } else if (rel.sourceType === 'setting') {
+        sourceEntity = props.workspace.settings?.find((s) => s.id === rel.sourceId)
+      }
 
-  // Add events the character participates in
-  props.workspace.events?.forEach((event) => {
-    if (event.characterIds?.includes(props.character.id)) {
-      related.set(event.id, {
-        id: event.id,
-        label: event.title || 'Untitled Event',
-        type: 'event',
-      })
-    }
-  })
-
-  // Add settings the character is related to
-  props.workspace.settings?.forEach((setting) => {
-    if (setting.relatedCharacterIds?.includes(props.character.id)) {
-      related.set(setting.id, {
-        id: setting.id,
-        label: setting.name || 'Unnamed Setting',
-        type: 'setting',
-      })
+      if (sourceEntity) {
+        const label =
+          rel.sourceType === 'character'
+            ? `${sourceEntity.name} (${rel.relationshipType})`
+            : sourceEntity.title || sourceEntity.name || 'Untitled'
+        related.set(`${rel.sourceType}-${rel.sourceId}`, {
+          id: rel.sourceId,
+          label,
+          type: rel.sourceType,
+        })
+      }
     }
   })
 

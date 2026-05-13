@@ -18,8 +18,18 @@
         :workspace="workspace"
         @select-entity="emit('select-entity', $event)"
       />
-      <EventDetailView v-else-if="resolvedType === 'event'" :event="entity" />
-      <SettingDetailView v-else-if="resolvedType === 'setting'" :setting="entity" />
+      <EventDetailView
+        v-else-if="resolvedType === 'event'"
+        :event="entity"
+        :workspace="workspace"
+        @select-entity="emit('select-entity', $event)"
+      />
+      <SettingDetailView
+        v-else-if="resolvedType === 'setting'"
+        :setting="entity"
+        :workspace="workspace"
+        @select-entity="emit('select-entity', $event)"
+      />
       <RelationshipDetailView v-else-if="resolvedType === 'relationship'" :relationship="entity" />
       <div v-else class="q-pa-md q-gutter-sm">
         <div class="text-h6">Unknown Entity</div>
@@ -56,7 +66,7 @@ const resolvedType = computed(() => {
     return 'relationship'
   }
 
-  if ('chapter' in value && 'sequenceOrder' in value && 'characterIds' in value) {
+  if ('chapter' in value && 'sequenceOrder' in value && 'chapterTitle' in value) {
     return 'event'
   }
 
@@ -64,7 +74,7 @@ const resolvedType = computed(() => {
     return 'character'
   }
 
-  if ('type' in value && 'ruler' in value && 'relatedCharacterIds' in value) {
+  if ('geography' in value && 'ruler' in value && 'population' in value) {
     return 'setting'
   }
 
