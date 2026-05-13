@@ -175,6 +175,16 @@ export const useBookLibraryStore = defineStore('bookLibrary', {
       }
 
       normalizedBook.updatedAt = new Date()
+
+      // Preserve userId: if the incoming book is missing userId, keep the existing owner's id
+      const existing = this.books.get(normalizedBook.id)
+      if (existing && !normalizedBook.userId) {
+        normalizedBook.userId = existing.userId
+      } else if (!normalizedBook.userId && this.currentUserId) {
+        // Fallback to current authenticated user if available
+        normalizedBook.userId = this.currentUserId
+      }
+
       await setDoc(doc(db, 'books', normalizedBook.id), normalizedBook.toFirestore())
       this.books.set(normalizedBook.id, normalizedBook)
       return normalizedBook
