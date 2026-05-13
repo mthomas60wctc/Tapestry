@@ -1,4 +1,4 @@
-import { Relationship, RELATIONSHIP_TYPES } from 'src/models'
+import { Relationship } from 'src/models'
 
 const ENTITY_COLLECTIONS = {
   character: 'characters',

@@ -24,30 +24,32 @@
         <q-chip color="accent" text-color="white" icon="account_circle">Account</q-chip>
       </q-toolbar>
 
-      <div class="q-px-md q-pb-sm q-pt-xs row items-center">
-        <q-btn flat dense no-caps class="text-left" style="min-width: 160px">
-          <div class="text-subtitle2 text-weight-bold">{{ currentBookTitle }}</div>
-          <q-menu anchor="bottom left" self="top left">
-            <q-list style="min-width: 250px">
-              <q-item
-                v-for="book in bookOptions"
-                :key="book.id"
-                clickable
-                v-close-popup
-                :active="book.id === selectedBookId"
-                active-class="bg-primary text-white"
-                @click="selectedBookId = book.id"
-              >
-                <q-item-section>
-                  <q-item-label>{{ book.title }}</q-item-label>
-                  <q-item-label caption>{{ book.author }}</q-item-label>
-                </q-item-section>
-              </q-item>
-            </q-list>
-          </q-menu>
-        </q-btn>
-        <q-separator vertical />
-        <q-tabs dense align="left" narrow-indicator>
+      <div class="q-px-md q-pb-sm q-pt-xs row items-center no-wrap nav-strip">
+        <div class="book-area row items-center no-wrap">
+          <q-btn flat dense no-caps class="text-left book-selector">
+            <div class="text-caption text-weight-medium nav-tab-text">{{ currentBookTitle }}</div>
+            <q-menu anchor="bottom left" self="top left">
+              <q-list style="min-width: 250px">
+                <q-item
+                  v-for="book in bookOptions"
+                  :key="book.id"
+                  clickable
+                  v-close-popup
+                  :active="book.id === selectedBookId"
+                  active-class="bg-primary text-white"
+                  @click="selectedBookId = book.id"
+                >
+                  <q-item-section>
+                    <q-item-label>{{ book.title }}</q-item-label>
+                    <q-item-label caption>{{ book.author }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
+          </q-btn>
+          <q-separator vertical class="q-ml-md" />
+        </div>
+        <q-tabs dense align="center" narrow-indicator class="nav-tabs">
           <q-route-tab to="/dashboard" label="Dashboard" exact />
           <q-route-tab to="/workspace" label="Workspace" />
           <q-route-tab to="/timeline" label="Timeline" />
@@ -140,3 +142,38 @@ watch(darkMode, (enabled) => {
   $q.dark.set(enabled)
 })
 </script>
+
+<style scoped>
+.nav-strip {
+  position: relative;
+  min-height: 48px;
+}
+
+.book-area {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.nav-tabs {
+  width: 100%;
+  justify-content: center;
+}
+
+.book-selector,
+.nav-tab-text {
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.book-selector {
+  min-width: 160px;
+}
+
+.nav-tab-text {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+</style>

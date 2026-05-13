@@ -41,7 +41,12 @@
             <EntityDetailView :entity="selectedEvent" type="event" />
           </q-card>
 
-          <QuickLinksCard title="Quick Jump" :items="quickJumps" @select="onQuickJumpSelect" />
+          <QuickLinksCard
+            title="Related Links"
+            :items="relatedLinks"
+            side-key="side"
+            @select="onRelatedLinkSelect"
+          />
         </div>
       </div>
     </div>
@@ -53,6 +58,7 @@ import { computed, ref, watch } from 'vue'
 import EntityDetailView from 'src/components/details/EntityDetailView.vue'
 import QuickLinksCard from 'src/components/QuickLinksCard.vue'
 import { createMockLibraryData, getMockWorkspaceData } from 'src/data/mockLibraryData'
+import { buildRelatedLinks } from 'src/utils/relatedLinks'
 import { useBookWorkspaceStore } from 'src/stores/bookWorkspace'
 import { useRouter } from 'vue-router'
 
@@ -118,19 +124,22 @@ const filteredTimelineEvents = computed(() => {
   })
 })
 
-const quickJumps = computed(() => {
-  const events = selectedWorkspace.value?.events || []
-  return events
-    .slice(0, 2)
-    .map((event) => ({ id: event.id, type: 'event', label: event.title, icon: 'event' }))
-})
+const relatedLinks = computed(() =>
+  buildRelatedLinks(selectedWorkspace.value, {
+    type: 'event',
+    entity: selectedEvent.value,
+  }),
+)
 
-function onQuickJumpSelect(item) {
+function onRelatedLinkSelect(item) {
   if (!item) return
   const bookId = selectedBookId.value
   if (bookId) {
     workspaceStore.currentBookId = bookId
-    router.push({ path: '/workspace', query: { book: bookId, type: item.type, id: item.id } })
+    router.push({
+      path: '/workspace',
+      query: { book: bookId, type: item.side?.toLowerCase(), id: item.id },
+    })
   }
 }
 </script>
