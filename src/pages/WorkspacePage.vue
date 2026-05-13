@@ -8,13 +8,7 @@
               <div class="text-subtitle1 text-weight-medium">Threads</div>
             </div>
             <div class="col-auto" style="min-width: 200px">
-              <q-input
-                v-model="searchEntityText"
-                outlined
-                dense
-                placeholder="Search entities..."
-                clearable
-              />
+              <q-input v-model="searchEntityText" outlined dense label="Search" clearable />
             </div>
             <div class="col-auto" style="min-width: 200px">
               <q-select
@@ -24,7 +18,7 @@
                 dense
                 emit-value
                 map-options
-                label="Filter Entity"
+                label="Filter Threads by Type"
               />
             </div>
             <div class="col-auto">
@@ -114,14 +108,17 @@ import EventModal from 'src/components/EventModal.vue'
 import LocationModal from 'src/components/LocationModal.vue'
 import { useBookLibraryStore } from 'src/stores/bookLibrary'
 import { useBookWorkspaceStore } from 'src/stores/bookWorkspace'
-import { createMockLibraryData, getMockWorkspaceData } from 'src/data/mockLibraryData'
+import {
+  createMockLibraryData,
+  getMockWorkspaceData,
+  saveMockWorkspaceData,
+} from 'src/data/mockLibraryData'
 
 const entityFilterOptions = [
   { label: 'All', value: 'all' },
   { label: 'Characters', value: 'characters' },
   { label: 'Events', value: 'events' },
   { label: 'Settings', value: 'settings' },
-  { label: 'Relationships', value: 'relationships' },
 ]
 
 const bookStore = useBookLibraryStore()
@@ -279,6 +276,8 @@ function mergeBookTags(tags) {
       tags: mergedTags,
     },
   }
+
+  saveCurrentWorkspace()
 }
 
 function setSelectedEntry(entity, type) {
@@ -377,6 +376,7 @@ function saveCharacter(payload) {
   mergeBookTags(character.tags)
   syncRelationships('character', character, payload?.relationships)
   setSelectedEntry(character, 'character')
+  saveCurrentWorkspace()
 }
 
 function saveEvent(payload) {
@@ -393,6 +393,7 @@ function saveEvent(payload) {
   mergeBookTags(event.tags)
   syncRelationships('event', event, payload?.relationships)
   setSelectedEntry(event, 'event')
+  saveCurrentWorkspace()
 }
 
 function saveLocation(payload) {
@@ -408,6 +409,7 @@ function saveLocation(payload) {
   mergeBookTags(setting.tags)
   syncRelationships('setting', setting, payload?.relationships)
   setSelectedEntry(setting, 'setting')
+  saveCurrentWorkspace()
 }
 
 function deleteCharacter(characterId) {
@@ -429,6 +431,7 @@ function deleteCharacter(characterId) {
     ),
   }
   selectedEntity.value = null
+  saveCurrentWorkspace()
 }
 
 function deleteEvent(eventId) {
@@ -450,6 +453,7 @@ function deleteEvent(eventId) {
     ),
   }
   selectedEntity.value = null
+  saveCurrentWorkspace()
 }
 
 function deleteLocation(settingId) {
@@ -471,6 +475,16 @@ function deleteLocation(settingId) {
     ),
   }
   selectedEntity.value = null
+  saveCurrentWorkspace()
+}
+
+function saveCurrentWorkspace() {
+  const bookId = workspaceData.value?.book?.id || selectedBookId.value
+  if (!bookId || !workspaceData.value) {
+    return
+  }
+
+  saveMockWorkspaceData(bookId, workspaceData.value)
 }
 
 function getEntityCollection(workspace, type) {

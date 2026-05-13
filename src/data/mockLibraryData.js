@@ -23,6 +23,35 @@ function withCover(book) {
   }
 }
 
+function getWorkspaceStorageKey(bookId) {
+  return `tapestry-mock-workspace:${bookId}`
+}
+
+function saveWorkspaceToStorage(bookId, workspace) {
+  if (!bookId || typeof window === 'undefined' || !workspace) {
+    return
+  }
+
+  try {
+    window.localStorage.setItem(getWorkspaceStorageKey(bookId), JSON.stringify(workspace))
+  } catch {
+    // Ignore storage failures and fall back to in-memory mock data.
+  }
+}
+
+function loadWorkspaceFromStorage(bookId) {
+  if (!bookId || typeof window === 'undefined') {
+    return null
+  }
+
+  try {
+    const raw = window.localStorage.getItem(getWorkspaceStorageKey(bookId))
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
 function createWesterosWorkspace() {
   const book = new Book({
     id: 'book-001',
@@ -1061,10 +1090,31 @@ export function createMockLibraryData() {
 }
 
 export function getMockWorkspaceData(bookId) {
+  const stored = loadWorkspaceFromStorage(bookId)
+  if (stored) {
+    return stored
+  }
+
   const factory = workspaceFactories[bookId]
   if (!factory) {
     return null
   }
 
   return factory()
+}
+
+export function saveMockWorkspaceData(bookId, workspace) {
+  saveWorkspaceToStorage(bookId, workspace)
+}
+
+export function clearMockWorkspaceData(bookId) {
+  if (!bookId || typeof window === 'undefined') {
+    return
+  }
+
+  try {
+    window.localStorage.removeItem(getWorkspaceStorageKey(bookId))
+  } catch {
+    // ignore
+  }
 }
