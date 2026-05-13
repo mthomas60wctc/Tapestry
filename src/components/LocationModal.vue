@@ -123,6 +123,8 @@
       </q-card-section>
 
       <q-card-actions align="right" class="q-pa-md">
+        <q-btn v-if="isEditing" flat label="Delete" color="negative" @click="onDelete" />
+        <div class="col" />
         <q-btn flat label="Cancel" color="primary" v-close-popup />
         <q-btn
           :label="isEditing ? 'Save Changes' : 'Create Location'"
@@ -164,7 +166,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['update:modelValue', 'save'])
+const emit = defineEmits(['update:modelValue', 'save', 'delete'])
 
 const formRef = ref(null)
 
@@ -299,6 +301,11 @@ async function save() {
     updatedAt: now,
   })
 
+  dialogModel.value = false
+}
+
+function onDelete() {
+  emit('delete', props.entity?.id)
   dialogModel.value = false
 }
 </script>

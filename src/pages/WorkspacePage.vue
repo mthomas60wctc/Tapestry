@@ -77,6 +77,7 @@
       :entity="characterDraft"
       :tag-options="tagOptions"
       @save="saveCharacter"
+      @delete="deleteCharacter"
     />
 
     <EventModal
@@ -87,6 +88,7 @@
       :setting-options="settingOptions"
       :tag-options="tagOptions"
       @save="saveEvent"
+      @delete="deleteEvent"
     />
 
     <LocationModal
@@ -97,6 +99,7 @@
       :parent-setting-options="parentSettingOptions"
       :tag-options="tagOptions"
       @save="saveLocation"
+      @delete="deleteLocation"
     />
   </div>
 </template>
@@ -163,7 +166,16 @@ function cloneWorkspaceData(workspace) {
 }
 
 function cloneEntity(entity) {
-  return entity ? cloneWorkspaceData(entity) : null
+  if (!entity) return null
+  // Create a plain object copy from the entity, avoiding Proxy issues
+  return {
+    ...entity,
+    aliases: entity.aliases ? [...entity.aliases] : [],
+    tags: entity.tags ? [...entity.tags] : [],
+    characterIds: entity.characterIds ? [...entity.characterIds] : [],
+    settingIds: entity.settingIds ? [...entity.settingIds] : [],
+    relatedCharacterIds: entity.relatedCharacterIds ? [...entity.relatedCharacterIds] : [],
+  }
 }
 
 watch(
@@ -367,6 +379,51 @@ function saveLocation(setting) {
   workspaceData.value = { ...workspaceData.value, settings }
   mergeBookTags(setting.tags)
   setSelectedEntry(setting, 'setting')
+}
+
+function deleteCharacter(characterId) {
+  if (!workspaceData.value || !characterId) {
+    return
+  }
+
+  const characters = [...(workspaceData.value.characters || [])]
+  const index = characters.findIndex((item) => item.id === characterId)
+  if (index !== -1) {
+    characters.splice(index, 1)
+  }
+
+  workspaceData.value = { ...workspaceData.value, characters }
+  selectedEntity.value = null
+}
+
+function deleteEvent(eventId) {
+  if (!workspaceData.value || !eventId) {
+    return
+  }
+
+  const events = [...(workspaceData.value.events || [])]
+  const index = events.findIndex((item) => item.id === eventId)
+  if (index !== -1) {
+    events.splice(index, 1)
+  }
+
+  workspaceData.value = { ...workspaceData.value, events }
+  selectedEntity.value = null
+}
+
+function deleteLocation(settingId) {
+  if (!workspaceData.value || !settingId) {
+    return
+  }
+
+  const settings = [...(workspaceData.value.settings || [])]
+  const index = settings.findIndex((item) => item.id === settingId)
+  if (index !== -1) {
+    settings.splice(index, 1)
+  }
+
+  workspaceData.value = { ...workspaceData.value, settings }
+  selectedEntity.value = null
 }
 
 function getEntityCollection(workspace, type) {
