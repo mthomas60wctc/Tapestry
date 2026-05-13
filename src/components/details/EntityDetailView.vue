@@ -12,7 +12,12 @@
         @click="emit('edit')"
       />
       <BookDetailView v-if="resolvedType === 'book'" :book="entity" />
-      <CharacterDetailView v-else-if="resolvedType === 'character'" :character="entity" />
+      <CharacterDetailView
+        v-else-if="resolvedType === 'character'"
+        :character="entity"
+        :workspace="workspace"
+        @select-entity="emit('select-entity', $event)"
+      />
       <EventDetailView v-else-if="resolvedType === 'event'" :event="entity" />
       <SettingDetailView v-else-if="resolvedType === 'setting'" :setting="entity" />
       <RelationshipDetailView v-else-if="resolvedType === 'relationship'" :relationship="entity" />
@@ -35,9 +40,10 @@ import RelationshipDetailView from 'src/components/details/RelationshipDetailVie
 const props = defineProps({
   entity: { type: Object, default: null },
   type: { type: String, default: '' },
+  workspace: { type: Object, default: null },
 })
 
-const emit = defineEmits(['edit'])
+const emit = defineEmits(['edit', 'select-entity'])
 
 const resolvedType = computed(() => {
   if (props.type) {

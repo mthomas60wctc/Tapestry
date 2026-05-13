@@ -52,7 +52,9 @@
                     class="q-pa-sm"
                     :entity="selectedEntity?.entity"
                     :type="selectedEntity?.type"
+                    :workspace="workspaceData"
                     @edit="onEntityEdit"
+                    @select-entity="onDetailEntitySelect"
                   />
                 </div>
               </div>
@@ -669,6 +671,16 @@ function onRelatedLinkSelect(item) {
   const match = entries.find((e) => e.id === id)
   if (match) {
     selectedEntity.value = match
+  }
+}
+
+function onDetailEntitySelect(entity) {
+  if (!entity || !entity.id || !entity.type) return
+
+  // Find the full entity in the workspace
+  const foundEntity = findEntity(workspaceData.value, entity.type, entity.id)
+  if (foundEntity) {
+    setSelectedEntry(foundEntity, entity.type)
   }
 }
 

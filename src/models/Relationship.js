@@ -49,9 +49,9 @@ export class Relationship {
   }
 
   /**
-   * Get the reverse relationship for genealogy/family tree views
+   * Get the reverse relationship for genealogy/family tree views (static)
    */
-  getReverseRelationshipType() {
+  static getReverseRelationshipType(relationshipType) {
     const reverseMap = {
       parent: 'child',
       child: 'parent',
@@ -63,6 +63,49 @@ export class Relationship {
       ally: 'ally',
       'love-interest': 'love-interest',
     }
-    return reverseMap[this.relationshipType] || this.relationshipType
+    return reverseMap[relationshipType] || relationshipType
+  }
+
+  /**
+   * Get the reverse relationship for genealogy/family tree views (instance)
+   */
+  getReverseRelationshipType() {
+    return Relationship.getReverseRelationshipType(this.relationshipType)
+  }
+
+  /**
+   * Get the display label for a relationship type
+   */
+  static getDisplayLabel(relationshipType) {
+    const labels = {
+      parent: 'Parent',
+      child: 'Child',
+      sibling: 'Sibling',
+      spouse: 'Spouse',
+      mentor: 'Mentor',
+      mentee: 'Mentee',
+      enemy: 'Enemy',
+      ally: 'Ally',
+      'love-interest': 'Love Interest',
+    }
+    return labels[relationshipType] || relationshipType.replace('-', ' ')
+  }
+
+  /**
+   * Check if this is a special relationship type (for detail views)
+   */
+  static isSpecialRelationshipType(relationshipType) {
+    const specialTypes = [
+      'parent',
+      'child',
+      'sibling',
+      'spouse',
+      'mentor',
+      'mentee',
+      'enemy',
+      'ally',
+      'love-interest',
+    ]
+    return specialTypes.includes(relationshipType)
   }
 }
