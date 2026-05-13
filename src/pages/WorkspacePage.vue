@@ -30,19 +30,9 @@
               </div>
               <div class="col-auto">
                 <div class="row q-gutter-sm justify-end">
-                  <q-btn
-                    color="primary"
-                    icon="person_add"
-                    label="Character"
-                    @click="openCharacterModal()"
-                  />
-                  <q-btn color="primary" icon="event" label="Event" @click="openEventModal()" />
-                  <q-btn
-                    color="primary"
-                    icon="place"
-                    label="Location"
-                    @click="openLocationModal()"
-                  />
+                  <q-btn color="primary" icon="person_add" @click="openCharacterModal()" />
+                  <q-btn color="primary" icon="event" @click="openEventModal()" />
+                  <q-btn color="primary" icon="place" @click="openLocationModal()" />
                 </div>
               </div>
             </q-card-section>
@@ -85,6 +75,7 @@
       v-model="characterModalOpen"
       :book-id="selectedBookId"
       :entity="characterDraft"
+      :tag-options="tagOptions"
       @save="saveCharacter"
     />
 
@@ -94,6 +85,7 @@
       :entity="eventDraft"
       :character-options="characterOptions"
       :setting-options="settingOptions"
+      :tag-options="tagOptions"
       @save="saveEvent"
     />
 
@@ -103,6 +95,7 @@
       :entity="locationDraft"
       :character-options="characterOptions"
       :parent-setting-options="parentSettingOptions"
+      :tag-options="tagOptions"
       @save="saveLocation"
     />
   </div>
@@ -222,6 +215,46 @@ const parentSettingOptions = computed(() => {
     .map((setting) => ({ label: setting.name, value: setting.id }))
 })
 
+function collectUniqueTags(workspace) {
+  const sources = [
+    workspace?.book?.tags || [],
+    ...(workspace?.characters || []).map((item) => item.tags || []),
+    ...(workspace?.events || []).map((item) => item.tags || []),
+    ...(workspace?.settings || []).map((item) => item.tags || []),
+    ...(workspace?.relationships || []).map((item) => item.tags || []),
+  ]
+
+  return Array.from(
+    new Set(
+      sources
+        .flat()
+        .map((tag) => String(tag).trim())
+        .filter(Boolean),
+    ),
+  ).sort((a, b) => a.localeCompare(b))
+}
+
+const tagOptions = computed(() => collectUniqueTags(selectedWorkspace.value))
+
+function mergeBookTags(tags) {
+  if (!workspaceData.value || !tags?.length) {
+    return
+  }
+
+  const currentTags = workspaceData.value.book?.tags || []
+  const mergedTags = Array.from(
+    new Set([...currentTags, ...tags].map((tag) => String(tag).trim()).filter(Boolean)),
+  ).sort((a, b) => a.localeCompare(b))
+
+  workspaceData.value = {
+    ...workspaceData.value,
+    book: {
+      ...workspaceData.value.book,
+      tags: mergedTags,
+    },
+  }
+}
+
 function setSelectedEntry(entity, type) {
   if (!entity) {
     selectedEntity.value = null
@@ -295,6 +328,7 @@ function saveCharacter(character) {
   }
 
   workspaceData.value = { ...workspaceData.value, characters }
+  mergeBookTags(character.tags)
   setSelectedEntry(character, 'character')
 }
 
@@ -313,6 +347,7 @@ function saveEvent(event) {
 
   events.sort((left, right) => (left.sequenceOrder ?? 0) - (right.sequenceOrder ?? 0))
   workspaceData.value = { ...workspaceData.value, events }
+  mergeBookTags(event.tags)
   setSelectedEntry(event, 'event')
 }
 
@@ -330,6 +365,7 @@ function saveLocation(setting) {
   }
 
   workspaceData.value = { ...workspaceData.value, settings }
+  mergeBookTags(setting.tags)
   setSelectedEntry(setting, 'setting')
 }
 

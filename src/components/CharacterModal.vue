@@ -83,7 +83,25 @@
               <q-input v-model="form.imageUrl" label="Image URL" outlined dense />
             </div>
             <div class="col-12 col-md-6">
-              <q-input v-model="form.tagsText" label="Tags" outlined dense hint="Comma-separated" />
+              <q-select
+                v-model="form.tags"
+                use-input
+                use-chips
+                multiple
+                input-debounce="0"
+                label="Tags"
+                new-value-mode="add"
+                :options="tagSelectOptions"
+                @filter="filterTagsFn"
+                outlined
+                dense
+              >
+                <template v-slot:no-option>
+                  <q-item>
+                    <q-item-section class="text-grey"> No results </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
             </div>
           </div>
         </q-form>
@@ -117,6 +135,10 @@ const props = defineProps({
     type: String,
     default: null,
   },
+  tagOptions: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'save'])
@@ -138,6 +160,8 @@ const roleOptions = [
   { label: 'Love Interest', value: 'love-interest' },
 ]
 
+let tagSelectOptions = ref(props.tagOptions)
+
 const dialogModel = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value),
@@ -156,6 +180,27 @@ watch(
   },
 )
 
+watch(
+  () => props.tagOptions,
+  (newTags) => {
+    tagSelectOptions.value = newTags
+  },
+)
+
+function filterTagsFn(val, update) {
+  if (val === '') {
+    update(() => {
+      tagSelectOptions.value = props.tagOptions
+    })
+    return
+  }
+
+  update(() => {
+    const needle = val.toLowerCase()
+    tagSelectOptions.value = props.tagOptions.filter((v) => v.toLowerCase().indexOf(needle) > -1)
+  })
+}
+
 function createEmptyForm() {
   return {
     name: '',
@@ -166,7 +211,7 @@ function createEmptyForm() {
     firstAppearance: '',
     background: '',
     imageUrl: '',
-    tagsText: '',
+    tags: [],
   }
 }
 
@@ -192,7 +237,7 @@ function resetForm() {
     firstAppearance: entity.firstAppearance || '',
     background: entity.background || '',
     imageUrl: entity.imageUrl || '',
-    tagsText: toText(entity.tags),
+    tags: [...(entity.tags || [])],
   })
 }
 
@@ -221,7 +266,7 @@ async function save() {
     firstAppearance: form.firstAppearance.trim() || null,
     background: form.background.trim(),
     imageUrl: form.imageUrl.trim() || null,
-    tags: toList(form.tagsText),
+    tags: [...form.tags],
     createdAt: entity.createdAt || now,
     updatedAt: now,
   })

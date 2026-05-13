@@ -47,7 +47,7 @@
                 outlined
               />
             </div>
-            <div class="col-12" col-md-6>
+            <div class="col-12">
               <q-input
                 v-model="form.geography"
                 label="Geography"
@@ -98,7 +98,25 @@
               <q-input v-model="form.imageUrl" label="Image URL" outlined dense />
             </div>
             <div class="col-12">
-              <q-input v-model="form.tagsText" label="Tags" outlined dense hint="Comma-separated" />
+              <q-select
+                v-model="form.tags"
+                use-input
+                use-chips
+                multiple
+                input-debounce="0"
+                label="Tags"
+                new-value-mode="add"
+                :options="options"
+                @filter="filterFn"
+                outlined
+                dense
+              >
+                <template v-slot:no-option>
+                  <q-item>
+                    <q-item-section class="text-grey"> No results </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
             </div>
           </div>
         </q-form>
@@ -140,6 +158,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  tagOptions: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'save'])
@@ -154,6 +176,29 @@ const dialogModel = computed({
 const isEditing = computed(() => !!props.entity)
 
 const form = reactive(createEmptyForm())
+
+let options = ref(props.tagOptions)
+
+watch(
+  () => props.tagOptions,
+  (newTags) => {
+    options.value = newTags
+  },
+)
+
+function filterFn(val, update) {
+  if (val === '') {
+    update(() => {
+      options.value = props.tagOptions
+    })
+    return
+  }
+
+  update(() => {
+    const needle = val.toLowerCase()
+    options.value = props.tagOptions.filter((v) => v.toLowerCase().indexOf(needle) > -1)
+  })
+}
 
 watch(
   () => props.modelValue,
@@ -178,7 +223,7 @@ function createEmptyForm() {
     relatedCharacterIds: [],
     parentSettingId: null,
     imageUrl: '',
-    tagsText: '',
+    tags: [],
   }
 }
 
@@ -216,7 +261,7 @@ function resetForm() {
     relatedCharacterIds: [...(entity.relatedCharacterIds || [])],
     parentSettingId: entity.parentSettingId || null,
     imageUrl: entity.imageUrl || '',
-    tagsText: toText(entity.tags),
+    tags: [...(entity.tags || [])],
   })
 }
 
@@ -249,7 +294,7 @@ async function save() {
     relatedCharacterIds: [...form.relatedCharacterIds],
     parentSettingId: form.parentSettingId || null,
     imageUrl: form.imageUrl.trim() || null,
-    tags: toList(form.tagsText),
+    tags: [...form.tags],
     createdAt: entity.createdAt || now,
     updatedAt: now,
   })

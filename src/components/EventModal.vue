@@ -90,7 +90,25 @@
               <q-input v-model="form.internalDate" label="Internal Date" outlined dense />
             </div>
             <div class="col-12 col-md-6">
-              <q-input v-model="form.tagsText" label="Tags" outlined dense hint="Comma-separated" />
+              <q-select
+                v-model="form.tags"
+                use-input
+                use-chips
+                multiple
+                input-debounce="0"
+                label="Tags"
+                new-value-mode="add"
+                :options="tagSelectOptions"
+                @filter="filterTagsFn"
+                outlined
+                dense
+              >
+                <template v-slot:no-option>
+                  <q-item>
+                    <q-item-section class="text-grey"> No results </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
             </div>
           </div>
 
@@ -130,6 +148,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  tagOptions: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'save'])
@@ -145,6 +167,8 @@ const isEditing = computed(() => !!props.entity)
 
 const form = reactive(createEmptyForm())
 
+let tagSelectOptions = ref(props.tagOptions)
+
 watch(
   () => props.modelValue,
   (isOpen) => {
@@ -153,6 +177,27 @@ watch(
     }
   },
 )
+
+watch(
+  () => props.tagOptions,
+  (newTags) => {
+    tagSelectOptions.value = newTags
+  },
+)
+
+function filterTagsFn(val, update) {
+  if (val === '') {
+    update(() => {
+      tagSelectOptions.value = props.tagOptions
+    })
+    return
+  }
+
+  update(() => {
+    const needle = val.toLowerCase()
+    tagSelectOptions.value = props.tagOptions.filter((v) => v.toLowerCase().indexOf(needle) > -1)
+  })
+}
 
 function createEmptyForm() {
   return {
@@ -168,20 +213,9 @@ function createEmptyForm() {
     settingIds: [],
     arc: '',
     emotionalTone: '',
-    tagsText: '',
+    tags: [],
     notes: '',
   }
-}
-
-function toText(list) {
-  return Array.isArray(list) ? list.filter(Boolean).join(', ') : ''
-}
-
-function toList(value) {
-  return String(value || '')
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
 }
 
 function toNumber(value) {
@@ -207,7 +241,7 @@ function resetForm() {
     settingIds: [...(entity.settingIds || [])],
     arc: entity.arc || '',
     emotionalTone: entity.emotionalTone || '',
-    tagsText: toText(entity.tags),
+    tags: [...(entity.tags || [])],
     notes: entity.notes || '',
   })
 }
@@ -241,7 +275,7 @@ async function save() {
     settingIds: [...form.settingIds],
     arc: form.arc.trim(),
     emotionalTone: form.emotionalTone.trim(),
-    tags: toList(form.tagsText),
+    tags: [...form.tags],
     notes: form.notes.trim(),
     createdAt: entity.createdAt || now,
     updatedAt: now,
