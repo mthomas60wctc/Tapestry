@@ -2,6 +2,8 @@
  * Book Model
  * Represents a book project containing all entities
  */
+import { toModelDate } from './dateValue'
+
 export class Book {
   constructor({
     id = null,
@@ -15,6 +17,7 @@ export class Book {
     status = 'in-progress', // 'in-progress', 'completed', 'planning'
     description = '',
     chapters = 0,
+    cover = null,
     coverImageUrl = null,
     readStartDate = null,
     readEndDate = null,
@@ -35,7 +38,8 @@ export class Book {
     this.status = status
     this.description = description
     this.chapters = chapters
-    this.coverImageUrl = coverImageUrl
+    this.cover = cover ?? coverImageUrl ?? null
+    this.coverImageUrl = coverImageUrl ?? cover ?? null
     this.readStartDate = readStartDate
     this.readEndDate = readEndDate
     this.visibility = visibility
@@ -46,13 +50,16 @@ export class Book {
   }
 
   static fromFirestore(doc) {
+    const data = doc.data()
     return new Book({
       id: doc.id,
-      ...doc.data(),
-      readStartDate: doc.data().readStartDate?.toDate() || null,
-      readEndDate: doc.data().readEndDate?.toDate() || null,
-      createdAt: doc.data().createdAt?.toDate() || new Date(),
-      updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+      ...data,
+      cover: data.cover ?? data.coverImageUrl ?? null,
+      coverImageUrl: data.coverImageUrl ?? data.cover ?? null,
+      readStartDate: toModelDate(data.readStartDate, null),
+      readEndDate: toModelDate(data.readEndDate, null),
+      createdAt: toModelDate(data.createdAt, new Date()),
+      updatedAt: toModelDate(data.updatedAt, new Date()),
     })
   }
 

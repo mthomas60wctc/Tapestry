@@ -91,6 +91,8 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore'
+import { db, auth } from 'boot/firebaseInit'
 import ItemSelectionList from 'src/components/ItemSelectionList.vue'
 import EntityDetailView from 'src/components/details/EntityDetailView.vue'
 import CharacterModal from 'src/components/CharacterModal.vue'
@@ -99,10 +101,10 @@ import LocationModal from 'src/components/LocationModal.vue'
 import { useBookLibraryStore } from 'src/stores/bookLibrary'
 import { useBookWorkspaceStore } from 'src/stores/bookWorkspace'
 import {
-  createMockLibraryData,
-  getMockWorkspaceData,
-  saveMockWorkspaceData,
-} from 'src/data/mockLibraryData'
+  cloneWorkspaceData,
+  loadWorkspaceFromFirestore,
+  toPlainFirestoreValue,
+} from 'src/utils/firestoreWorkspace'
 
 const entityFilterOptions = [
   { label: 'All', value: 'all' },
@@ -113,12 +115,9 @@ const entityFilterOptions = [
 
 const bookStore = useBookLibraryStore()
 const workspaceStore = useBookWorkspaceStore()
-const { books: mockBooks } = createMockLibraryData()
 
 const bookOptions = computed(() => {
-  const userBooks = bookStore.userBooks || []
-  if (userBooks.length) return userBooks
-  return mockBooks
+  return bookStore.userBooks || []
 })
 
 const route = useRoute()
@@ -141,56 +140,11 @@ const characterDraft = ref(null)
 const eventDraft = ref(null)
 const locationDraft = ref(null)
 
-function cloneWorkspaceData(workspace) {
-  if (!workspace) {
-    return null
-  }
-
-  const cloned = globalThis.structuredClone
-    ? globalThis.structuredClone(workspace)
-    : JSON.parse(JSON.stringify(workspace))
-
-  // Clean up deprecated fields from entity models (graph refactor)
-  // Remove character/event/setting IDs arrays from entities - all connections now go through relationships
-  if (cloned.characters) {
-    cloned.characters = cloned.characters.map((char) => {
-      const cleaned = { ...char }
-      delete cleaned.relatedCharacterIds
-      delete cleaned.settingIds
-      delete cleaned.eventIds
-      return cleaned
-    })
-  }
-
-  if (cloned.events) {
-    cloned.events = cloned.events.map((event) => {
-      const cleaned = { ...event }
-      delete cleaned.characterIds
-      delete cleaned.settingIds
-      return cleaned
-    })
-  }
-
-  if (cloned.settings) {
-    cloned.settings = cloned.settings.map((setting) => {
-      const cleaned = { ...setting }
-      delete cleaned.relatedCharacterIds
-      delete cleaned.parentSettingId
-      return cleaned
-    })
-  }
-
-  return cloned
-}
-
 function cloneEntity(entity) {
   if (!entity) return null
-  // Create a plain object copy from the entity, avoiding Proxy issues
-  const cleaned = {
-    ...entity,
-    aliases: entity.aliases ? [...entity.aliases] : [],
-    tags: entity.tags ? [...entity.tags] : [],
-  }
+  const cleaned = toPlainFirestoreValue(entity)
+  cleaned.aliases = entity.aliases ? [...entity.aliases] : []
+  cleaned.tags = entity.tags ? [...entity.tags] : []
   // Remove deprecated fields
   delete cleaned.characterIds
   delete cleaned.settingIds
@@ -198,6 +152,57 @@ function cloneEntity(entity) {
   delete cleaned.eventIds
   delete cleaned.parentSettingId
   return cleaned
+}
+
+function sanitizeFirestoreEntity(entity) {
+  if (!entity) return null
+
+  const cleaned = cloneEntity(entity)
+  delete cleaned.updatedAt
+  delete cleaned.createdAt
+
+  return {
+    ...cleaned,
+    createdAt: entity.createdAt || new Date(),
+    updatedAt: entity.updatedAt || new Date(),
+  }
+}
+
+async function syncFirestoreCollection(bookId, collectionName, items) {
+  const collectionRef = collection(db, 'books', bookId, collectionName)
+  const existingDocs = await getDocs(collectionRef)
+  const nextIds = new Set((items || []).map((item) => item.id))
+
+  await Promise.all(
+    existingDocs.docs.filter((snap) => !nextIds.has(snap.id)).map((snap) => deleteDoc(snap.ref)),
+  )
+
+  await Promise.all(
+    (items || []).map((item) => setDoc(doc(collectionRef, item.id), sanitizeFirestoreEntity(item))),
+  )
+}
+
+async function saveWorkspaceToFirestore(bookId, workspace) {
+  if (!bookId || !workspace) {
+    return
+  }
+
+  const cleanedWorkspace = cloneWorkspaceData(workspace)
+  if (!cleanedWorkspace) {
+    return
+  }
+
+  const bookRef = doc(db, 'books', bookId)
+  const bookData = sanitizeFirestoreEntity(cleanedWorkspace.book)
+  // Ensure userId is set for Firestore rules to validate ownership
+  if (auth.currentUser) {
+    bookData.userId = auth.currentUser.uid
+  }
+  await setDoc(bookRef, bookData, { merge: true })
+  await syncFirestoreCollection(bookId, 'characters', cleanedWorkspace.characters || [])
+  await syncFirestoreCollection(bookId, 'events', cleanedWorkspace.events || [])
+  await syncFirestoreCollection(bookId, 'settings', cleanedWorkspace.settings || [])
+  await syncFirestoreCollection(bookId, 'relationships', cleanedWorkspace.relationships || [])
 }
 
 watch(
@@ -217,11 +222,16 @@ watch(
 
 watch(
   selectedBookId,
-  (bookId) => {
-    const resolvedBookId = bookId || bookOptions.value[0]?.id || mockBooks[0]?.id || null
-    workspaceData.value = cloneWorkspaceData(
-      resolvedBookId ? getMockWorkspaceData(resolvedBookId) : null,
-    )
+  async (bookId) => {
+    const resolvedBookId = bookId || bookOptions.value[0]?.id || null
+
+    if (!resolvedBookId) {
+      workspaceData.value = null
+      return
+    }
+
+    const firebaseWorkspace = await loadWorkspaceFromFirestore(resolvedBookId)
+    workspaceData.value = cloneWorkspaceData(firebaseWorkspace)
   },
   { immediate: true },
 )
@@ -474,7 +484,9 @@ function saveCurrentWorkspace() {
     return
   }
 
-  saveMockWorkspaceData(bookId, workspaceData.value)
+  void saveWorkspaceToFirestore(bookId, workspaceData.value).catch((err) => {
+    console.warn('Unable to save workspace to Firestore:', err)
+  })
 }
 
 function getEntityCollection(workspace, type) {

@@ -1,0 +1,76 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isBookOwnerData() {
+      return isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    function canReadBookData() {
+      return isSignedIn()
+        && (
+          resource.data.userId == request.auth.uid
+          || resource.data.visibility == 'public'
+          || (
+            resource.data.visibility == 'shared'
+            && resource.data.collaboratorIds != null
+            && request.auth.uid in resource.data.collaboratorIds
+          )
+        );
+    }
+
+    function isOwner(bookId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/books/$(bookId))
+        && get(/databases/$(database)/documents/books/$(bookId)).data.userId == request.auth.uid;
+    }
+
+    function canReadBook(bookId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/books/$(bookId))
+        && (
+          get(/databases/$(database)/documents/books/$(bookId)).data.userId == request.auth.uid ||
+          get(/databases/$(database)/documents/books/$(bookId)).data.visibility == 'public' ||
+          (
+            get(/databases/$(database)/documents/books/$(bookId)).data.visibility == 'shared' &&
+            get(/databases/$(database)/documents/books/$(bookId)).data.collaboratorIds != null &&
+            get(/databases/$(database)/documents/books/$(bookId)).data.collaboratorIds.hasAny([request.auth.uid])
+          )
+        );
+    }
+
+    match /books/{bookId} {
+      allow read: if canReadBookData();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isBookOwnerData();
+
+      match /characters/{characterId} {
+        allow read: if canReadBook(bookId);
+        allow create, update, delete: if isOwner(bookId);
+      }
+
+      match /events/{eventId} {
+        allow read: if canReadBook(bookId);
+        allow create, update, delete: if isOwner(bookId);
+      }
+
+      match /settings/{settingId} {
+        allow read: if canReadBook(bookId);
+        allow create, update, delete: if isOwner(bookId);
+      }
+
+      match /relationships/{relationshipId} {
+        allow read: if canReadBook(bookId);
+        allow create, update, delete: if isOwner(bookId);
+      }
+    }
+
+    match /users/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+  }
+}

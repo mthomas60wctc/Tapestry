@@ -1,6 +1,8 @@
 /**
  * Character Model
  */
+import { toModelDate } from './dateValue'
+
 export class Character {
   constructor({
     id = null,
@@ -33,11 +35,12 @@ export class Character {
   }
 
   static fromFirestore(doc) {
+    const data = doc.data()
     return new Character({
       id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate() || new Date(),
-      updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+      ...data,
+      createdAt: toModelDate(data.createdAt, new Date()),
+      updatedAt: toModelDate(data.updatedAt, new Date()),
     })
   }
 

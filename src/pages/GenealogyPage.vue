@@ -60,14 +60,15 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import EntityDetailView from 'src/components/details/EntityDetailView.vue'
-import { createMockLibraryData, getMockWorkspaceData } from 'src/data/mockLibraryData'
 import { buildRelatedLinks } from 'src/utils/relatedLinks'
+import { cloneWorkspaceData, loadWorkspaceFromFirestore } from 'src/utils/firestoreWorkspace'
+import { useBookLibraryStore } from 'src/stores/bookLibrary'
 import { useBookWorkspaceStore } from 'src/stores/bookWorkspace'
 import QuickLinksCard from 'src/components/QuickLinksCard.vue'
 import { useRouter } from 'vue-router'
 
-const { books: mockBooks } = createMockLibraryData()
-const bookOptions = computed(() => mockBooks)
+const bookLibraryStore = useBookLibraryStore()
+const bookOptions = computed(() => bookLibraryStore.userBooks || [])
 
 const workspaceStore = useBookWorkspaceStore()
 const selectedBookId = computed({
@@ -78,6 +79,7 @@ const selectedBookId = computed({
 })
 const selectedCharacterId = ref(null)
 const searchCharacterText = ref('')
+const selectedWorkspace = ref(null)
 
 watch(
   bookOptions,
@@ -94,7 +96,14 @@ watch(
   { immediate: true },
 )
 
-const selectedWorkspace = computed(() => getMockWorkspaceData(selectedBookId.value))
+watch(
+  selectedBookId,
+  async (bookId) => {
+    const workspace = await loadWorkspaceFromFirestore(bookId)
+    selectedWorkspace.value = cloneWorkspaceData(workspace)
+  },
+  { immediate: true },
+)
 
 watch(
   () => selectedWorkspace.value?.characters,

@@ -4,6 +4,8 @@
  * All entity connections (character-to-event, character-to-setting, etc.) are modeled as relationships
  */
 
+import { toModelDate } from './dateValue'
+
 // Relationship type constants
 export const RELATIONSHIP_TYPES = {
   // Character to Character
@@ -72,11 +74,12 @@ export class Relationship {
   }
 
   static fromFirestore(doc) {
+    const data = doc.data()
     return new Relationship({
       id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate() || new Date(),
-      updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+      ...data,
+      createdAt: toModelDate(data.createdAt, new Date()),
+      updatedAt: toModelDate(data.updatedAt, new Date()),
     })
   }
 

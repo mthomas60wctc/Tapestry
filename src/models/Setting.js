@@ -2,6 +2,8 @@
  * Setting Model
  * Represents a location, place, or environment
  */
+import { toModelDate } from './dateValue'
+
 export class Setting {
   constructor({
     id = null,
@@ -38,11 +40,12 @@ export class Setting {
   }
 
   static fromFirestore(doc) {
+    const data = doc.data()
     return new Setting({
       id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate() || new Date(),
-      updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+      ...data,
+      createdAt: toModelDate(data.createdAt, new Date()),
+      updatedAt: toModelDate(data.updatedAt, new Date()),
     })
   }
 

@@ -4,6 +4,17 @@
  */
 
 import { defineStore, acceptHMRUpdate } from 'pinia'
+import { collection, deleteDoc, doc, getDocs, query, setDoc, where } from 'firebase/firestore'
+import { db } from 'boot/firebaseInit'
+import { Book } from 'src/models'
+
+function normalizeBook(book) {
+  if (!book) {
+    return null
+  }
+
+  return book instanceof Book ? book : new Book(book)
+}
 
 export const useBookLibraryStore = defineStore('bookLibrary', {
   state: () => ({
@@ -66,7 +77,10 @@ export const useBookLibraryStore = defineStore('bookLibrary', {
       try {
         this.books.clear()
         initialBooks.forEach((book) => {
-          this.books.set(book.id, book)
+          const normalizedBook = normalizeBook({ ...book, userId })
+          if (normalizedBook?.id) {
+            this.books.set(normalizedBook.id, normalizedBook)
+          }
         })
         this.isLoading = false
       } catch (err) {
@@ -78,27 +92,70 @@ export const useBookLibraryStore = defineStore('bookLibrary', {
     /**
      * Load user's books from Firebase
      */
-    async loadUserBooks() {
+    async loadUserBooks(seedBooks = []) {
       this.isLoading = true
       this.error = null
 
       try {
-        // TODO: Fetch books from Firebase for currentUserId
+        if (!this.currentUserId) {
+          throw new Error('No authenticated user found')
+        }
+
+        this.books.clear()
+
+        const booksQuery = query(collection(db, 'books'), where('userId', '==', this.currentUserId))
+        const snapshot = await getDocs(booksQuery)
+
+        if (snapshot.empty && seedBooks.length) {
+          const seededBooks = seedBooks
+            .map((book) => normalizeBook({ ...book, userId: this.currentUserId }))
+            .filter(Boolean)
+
+          await Promise.all(
+            seededBooks.map((book) => setDoc(doc(db, 'books', book.id), book.toFirestore())),
+          )
+
+          seededBooks.forEach((book) => {
+            this.books.set(book.id, book)
+          })
+        } else {
+          snapshot.forEach((bookDoc) => {
+            this.books.set(bookDoc.id, Book.fromFirestore(bookDoc))
+          })
+        }
+
         this.isLoading = false
+        return Array.from(this.books.values())
       } catch (err) {
+        console.error('Failed to load user books from Firestore:', err)
         this.error = err.message
         this.isLoading = false
+        return []
       }
     },
 
     /**
      * Add a new book to library
      */
-    addBook(book) {
+    async addBook(book) {
       if (!book.userId) {
         book.userId = this.currentUserId
       }
-      this.books.set(book.id, book)
+
+      const normalizedBook = normalizeBook({
+        ...book,
+        userId: book.userId,
+        createdAt: book.createdAt || new Date(),
+        updatedAt: new Date(),
+      })
+
+      if (!normalizedBook?.id) {
+        throw new Error('Book id is required')
+      }
+
+      await setDoc(doc(db, 'books', normalizedBook.id), normalizedBook.toFirestore())
+      this.books.set(normalizedBook.id, normalizedBook)
+      return normalizedBook
     },
 
     /**
@@ -111,50 +168,61 @@ export const useBookLibraryStore = defineStore('bookLibrary', {
     /**
      * Update a book
      */
-    updateBook(book) {
-      book.updatedAt = new Date()
-      this.books.set(book.id, book)
+    async updateBook(book) {
+      const normalizedBook = normalizeBook(book)
+      if (!normalizedBook?.id) {
+        throw new Error('Book id is required')
+      }
+
+      normalizedBook.updatedAt = new Date()
+      await setDoc(doc(db, 'books', normalizedBook.id), normalizedBook.toFirestore())
+      this.books.set(normalizedBook.id, normalizedBook)
+      return normalizedBook
     },
 
     /**
      * Delete a book
      */
-    deleteBook(bookId) {
+    async deleteBook(bookId) {
+      await deleteDoc(doc(db, 'books', bookId))
       this.books.delete(bookId)
     },
 
     /**
      * Update book visibility/sharing
      */
-    updateBookVisibility(bookId, visibility, collaboratorIds = []) {
+    async updateBookVisibility(bookId, visibility, collaboratorIds = []) {
       const book = this.books.get(bookId)
       if (book) {
         book.visibility = visibility
         book.collaboratorIds = collaboratorIds
         book.updatedAt = new Date()
+        await this.updateBook(book)
       }
     },
 
     /**
      * Add collaborators to a book
      */
-    addCollaborators(bookId, userIds) {
+    async addCollaborators(bookId, userIds) {
       const book = this.books.get(bookId)
       if (book) {
         const uniqueIds = new Set([...book.collaboratorIds, ...userIds])
         book.collaboratorIds = Array.from(uniqueIds)
         book.updatedAt = new Date()
+        await this.updateBook(book)
       }
     },
 
     /**
      * Remove collaborators from a book
      */
-    removeCollaborators(bookId, userIds) {
+    async removeCollaborators(bookId, userIds) {
       const book = this.books.get(bookId)
       if (book) {
         book.collaboratorIds = book.collaboratorIds.filter((id) => !userIds.includes(id))
         book.updatedAt = new Date()
+        await this.updateBook(book)
       }
     },
 

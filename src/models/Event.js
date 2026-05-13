@@ -2,6 +2,8 @@
  * Event Model
  * Represents a story event, scene, or chapter moment
  */
+import { toModelDate } from './dateValue'
+
 export class Event {
   constructor({
     id = null,
@@ -40,11 +42,12 @@ export class Event {
   }
 
   static fromFirestore(doc) {
+    const data = doc.data()
     return new Event({
       id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate() || new Date(),
-      updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+      ...data,
+      createdAt: toModelDate(data.createdAt, new Date()),
+      updatedAt: toModelDate(data.updatedAt, new Date()),
     })
   }
 

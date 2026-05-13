@@ -21,7 +21,15 @@
           @click="toggleDarkMode"
         />
 
-        <q-chip color="accent" text-color="white" icon="account_circle">Account</q-chip>
+        <q-chip
+          color="accent"
+          text-color="white"
+          icon="account_circle"
+          clickable
+          @click="showLogoutDialog = true"
+        >
+          {{ accountName }}
+        </q-chip>
       </q-toolbar>
 
       <div class="q-px-md q-pb-sm q-pt-xs row items-center no-wrap nav-strip">
@@ -57,6 +65,27 @@
           <q-route-tab to="/share" label="Share" />
         </q-tabs>
       </div>
+
+      <q-dialog v-model="showLogoutDialog">
+        <q-card class="logout-card">
+          <q-card-section class="row items-center q-pb-none">
+            <div class="text-h6">Sign out?</div>
+            <q-space />
+            <q-btn icon="close" flat round dense v-close-popup />
+          </q-card-section>
+
+          <q-card-section>
+            <div class="text-body1">
+              Sign out <strong>{{ accountName }}</strong> from Tapestry?
+            </div>
+          </q-card-section>
+
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" v-close-popup />
+            <q-btn color="negative" label="Sign out" @click="confirmLogout" />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
     </q-header>
 
     <q-page-container>
@@ -75,21 +104,20 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
+import { onAuthStateChanged, signOut } from 'firebase/auth'
+import { auth } from 'boot/firebaseInit'
 import { useBookLibraryStore } from 'src/stores/bookLibrary'
 import { useBookWorkspaceStore } from 'src/stores/bookWorkspace'
-import { createMockLibraryData } from 'src/data/mockLibraryData'
 
 const $q = useQuasar()
 const darkMode = ref(false)
+const accountName = ref('Account')
+const showLogoutDialog = ref(false)
 const bookStore = useBookLibraryStore()
 const workspaceStore = useBookWorkspaceStore()
 
-const { books: mockBooks } = createMockLibraryData()
-
 const bookOptions = computed(() => {
-  const userBooks = bookStore.userBooks || []
-  if (userBooks.length) return userBooks
-  return mockBooks
+  return bookStore.userBooks || []
 })
 
 const selectedBookId = computed({
@@ -106,6 +134,24 @@ const currentBookTitle = computed(() => {
 
 const isDarkMode = computed(() => darkMode.value)
 
+function getFallbackUserName(user) {
+  const emailPrefix = user?.email?.split('@')[0]
+  return emailPrefix || 'Account'
+}
+
+onAuthStateChanged(auth, async (user) => {
+  accountName.value = user?.displayName?.trim() || getFallbackUserName(user)
+
+  if (user?.uid) {
+    bookStore.initializeLibrary(user.uid)
+    await bookStore.loadUserBooks()
+    return
+  }
+
+  bookStore.reset()
+  workspaceStore.reset()
+})
+
 function applyDarkMode(enabled) {
   darkMode.value = enabled
   $q.dark.set(enabled)
@@ -119,14 +165,15 @@ function toggleDarkMode() {
   applyDarkMode(!darkMode.value)
 }
 
+async function confirmLogout() {
+  showLogoutDialog.value = false
+  await signOut(auth)
+  window.location.reload()
+}
+
 onMounted(() => {
   if (typeof window === 'undefined') {
     return
-  }
-
-  // Initialize book if not set
-  if (!selectedBookId.value && bookOptions.value.length) {
-    selectedBookId.value = bookOptions.value[0].id
   }
 
   const storedValue = window.localStorage.getItem('tapestry-dark-mode')
@@ -141,6 +188,21 @@ onMounted(() => {
 watch(darkMode, (enabled) => {
   $q.dark.set(enabled)
 })
+
+watch(
+  bookOptions,
+  (books) => {
+    if (!books.length) {
+      selectedBookId.value = null
+      return
+    }
+
+    if (!books.some((book) => book.id === selectedBookId.value)) {
+      selectedBookId.value = books[0].id
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <style scoped>
@@ -175,5 +237,10 @@ watch(darkMode, (enabled) => {
 .nav-tab-text {
   font-size: 0.875rem;
   line-height: 1.25rem;
+}
+
+.logout-card {
+  width: 100%;
+  max-width: 420px;
 }
 </style>

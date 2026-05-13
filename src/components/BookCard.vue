@@ -34,7 +34,7 @@ const imgError = ref(false)
 
 const coverSrc = computed(() => {
   if (!props.book) return null
-  const cover = props.book.cover
+  const cover = props.book.cover ?? props.book.coverImageUrl
   if (!cover) return null
   if (typeof cover === 'string' && (cover.startsWith('http') || cover.startsWith('/'))) return cover
   if (typeof cover === 'string') return `/covers/${cover}.jpg`
