@@ -1,0 +1,1 @@
+import{E as e,F as t,h as n}from"./key-composition-DSi3x1yl.js";import{S as r,d as i,f as a}from"./QCard-Sjk_OT1W.js";var o=n({name:`QCardActions`,props:{...a,vertical:Boolean},setup(n,{slots:a}){let o=i(n),s=e(()=>`q-card__actions ${o.value} q-card__actions--${n.vertical===!0?`vert column`:`horiz row`}`);return()=>t(`div`,{class:s.value},r(a.default))}});export{o as t};
