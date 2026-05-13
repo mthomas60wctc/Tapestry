@@ -1,0 +1,39 @@
+// src/css/quasar.variables.scss
+
+$primary: #3c3c3b; // Charcoal Ink
+$secondary: #8d775f; // Muted Leather/Bookbinding
+$accent: #a64452; // Classic Ribbon Bookmark Red
+
+$dark: #1a1a19; // Deep Night Mode
+$dark-page: #121212;
+
+$positive: #4b6043;
+$negative: #8b0000;
+$info: #507687;
+$warning: #d69e2e;
+
+// Setting the main UI font
+$generic-border-radius: 4px; // Softer, more organic corners
+$typography-font-family: 'Inter', '-apple-system', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+
+// Reduce the "harshness" of shadows globally
+$shadow-color: rgba(0, 0, 0, 0.05);
+$shadow-transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+// Increase default spacing for a "roomier" layout
+$flex-gutter-xs: 4px;
+$flex-gutter-sm: 8px;
+$flex-gutter-md: 16px;
+$flex-gutter-lg: 24px;
+$flex-gutter-xl: 48px;
+
+// Make inputs and buttons look more like "slots" or "markers"
+$button-padding: 8px 16px;
+$button-font-weight: 500;
+$button-text-transform: none; // Avoids the loud "ALL CAPS" look
+
+// Making QCards feel more like pages
+$card-shadow:
+  0 1px 3px $shadow-color,
+  0 1px 2px $shadow-color;
+$card-border-radius: 2px; // Sharp but slightly softened

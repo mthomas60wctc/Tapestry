@@ -36,7 +36,7 @@
       </div>
 
       <div class="col-12 col-md-3">
-        <q-card bordered flat>
+        <q-card bordered flat class="cursor-pointer" @click="openSelectedCharacterInWorkspace">
           <q-card-section class="text-subtitle1 text-weight-medium"
             >Selected Node Detail</q-card-section
           >
@@ -155,5 +155,19 @@ function onRelatedLinkSelect(item) {
       query: { book: bookId, type: item.side?.toLowerCase(), id: item.id },
     })
   }
+}
+
+function openSelectedCharacterInWorkspace() {
+  const bookId = selectedBookId.value
+  const characterId = selectedCharacter.value?.id
+  if (!bookId || !characterId) {
+    return
+  }
+
+  workspaceStore.currentBookId = bookId
+  router.push({
+    path: '/workspace',
+    query: { book: bookId, type: 'character', id: characterId },
+  })
 }
 </script>

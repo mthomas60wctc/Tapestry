@@ -33,7 +33,12 @@
 
       <div class="col-12 col-md-4">
         <div class="q-gutter-md">
-          <q-card bordered flat class="interactive-card q-hoverable cursor-pointer">
+          <q-card
+            bordered
+            flat
+            class="interactive-card q-hoverable cursor-pointer"
+            @click="openSelectedEventInWorkspace"
+          >
             <q-card-section class="text-subtitle1 text-weight-medium"
               >Selected Event Detail</q-card-section
             >
@@ -150,6 +155,20 @@ function onRelatedLinkSelect(item) {
       query: { book: bookId, type: item.side?.toLowerCase(), id: item.id },
     })
   }
+}
+
+function openSelectedEventInWorkspace() {
+  const bookId = selectedBookId.value
+  const eventId = selectedEvent.value?.id
+  if (!bookId || !eventId) {
+    return
+  }
+
+  workspaceStore.currentBookId = bookId
+  router.push({
+    path: '/workspace',
+    query: { book: bookId, type: 'event', id: eventId },
+  })
 }
 </script>
 <style scoped>

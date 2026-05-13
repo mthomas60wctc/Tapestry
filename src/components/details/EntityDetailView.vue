@@ -3,7 +3,7 @@
     <div v-if="!entity" class="q-pa-md text-grey-7">Select an item to view details.</div>
     <div v-else class="entity-detail-wrapper">
       <q-btn
-        v-if="['character', 'event', 'setting'].includes(resolvedType)"
+        v-if="['book', 'character', 'event', 'setting'].includes(resolvedType)"
         icon="edit"
         flat
         dense

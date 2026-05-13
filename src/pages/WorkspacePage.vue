@@ -91,6 +91,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+// import { useQuasar } from 'quasar'
 import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore'
 import { db, auth } from 'boot/firebaseInit'
 import ItemSelectionList from 'src/components/ItemSelectionList.vue'
@@ -122,6 +123,7 @@ const bookOptions = computed(() => {
 
 const route = useRoute()
 const router = useRouter()
+// const $q = useQuasar()
 
 const selectedBookId = computed({
   get: () => workspaceStore.currentBookId,
@@ -354,6 +356,9 @@ function onEntityEdit() {
     return
   }
 
+  // if (selectedEntity.value?.type === 'book') {
+  //   openBookModal(entity)
+  // } else
   if (selectedEntity.value?.type === 'character') {
     openCharacterModal(entity)
   } else if (selectedEntity.value?.type === 'event') {
@@ -362,6 +367,47 @@ function onEntityEdit() {
     openLocationModal(entity)
   }
 }
+
+// function confirmDeleteBook(book) {
+//   if (!book?.id) {
+//     return
+//   }
+
+//   $q.dialog({
+//     title: 'Delete book?',
+//     message: `Delete "${book.title || 'Untitled Book'}" from your library? This cannot be undone.`,
+//     cancel: true,
+//     persistent: true,
+//     ok: {
+//       label: 'Delete',
+//       color: 'negative',
+//       unelevated: true,
+//     },
+//   }).onOk(async () => {
+//     try {
+//       await bookStore.deleteBook(book.id)
+
+//       if (workspaceStore.currentBookId === book.id) {
+//         workspaceStore.currentBookId = null
+//       }
+
+//       selectedEntity.value = null
+//       workspaceData.value = null
+
+//       const fallbackBookId = bookStore.userBooks?.[0]?.id || null
+//       if (fallbackBookId) {
+//         workspaceStore.currentBookId = fallbackBookId
+//       } else {
+//         router.push('/dashboard')
+//       }
+
+//       $q.notify({ type: 'positive', message: 'Book deleted' })
+//     } catch (error) {
+//       console.warn('Unable to delete book:', error)
+//       $q.notify({ type: 'negative', message: 'Unable to delete book' })
+//     }
+//   })
+// }
 
 function saveCharacter(payload) {
   if (!workspaceData.value) {
@@ -575,14 +621,6 @@ const entityEntries = computed(() => {
         icon: getIconForType('setting'),
         entity: setting,
       }))
-    case 'relationships':
-      return workspace.relationships.map((relationship) => ({
-        id: relationship.id,
-        label: `${relationship.relationshipType}: ${relationship.sourceId} → ${relationship.targetId}`,
-        type: 'relationship',
-        icon: getIconForType('relationship'),
-        entity: relationship,
-      }))
     case 'all':
     default:
       return [
@@ -592,21 +630,21 @@ const entityEntries = computed(() => {
           type: 'book',
           entity: workspace.book,
         },
-        ...workspace.characters.slice(0, 4).map((character) => ({
+        ...workspace.characters.map((character) => ({
           id: character.id,
           label: character.name,
           type: 'character',
           icon: getIconForType('character'),
           entity: character,
         })),
-        ...workspace.events.slice(0, 2).map((event) => ({
+        ...workspace.events.map((event) => ({
           id: event.id,
           label: event.title,
           type: 'event',
           icon: getIconForType('event'),
           entity: event,
         })),
-        ...workspace.settings.slice(0, 2).map((setting) => ({
+        ...workspace.settings.map((setting) => ({
           id: setting.id,
           label: setting.name,
           type: 'setting',
