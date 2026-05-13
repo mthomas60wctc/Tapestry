@@ -1,36 +1,138 @@
 <template>
   <q-dialog v-model="dialogModel">
-    <q-card>
+    <q-card style="min-width: 600px; max-width: 900px">
       <q-card-section>
-        <div class="text-h6">New Book</div>
-        <div class="text-caption text-grey-7">Add a new book to your library to get started</div>
+        <div class="text-h6">New Book Details</div>
+        <div class="text-caption text-grey-7">Complete your book information</div>
       </q-card-section>
 
-      <q-card-section>
+      <q-separator />
+
+      <q-card-section class="q-pa-md">
         <q-form ref="formRef">
           <div class="row q-col-gutter-md">
-            <div class="col-md-6">
-              <q-input v-model="form.title" label="Title" required />
-              <q-input v-model="form.author" label="Author" required />
-              <q-input v-model="form.series" label="Series" />
+            <!-- Cover Image Section -->
+            <div class="col-12 col-md-4">
+              <div class="text-subtitle2 q-mb-md">Book Cover</div>
+              <div
+                class="bg-grey-2 rounded-borders"
+                style="
+                  aspect-ratio: 2 / 3;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  min-height: 250px;
+                "
+              >
+                <div v-if="!form.cover && !coverPreview" class="text-center">
+                  <q-icon name="image" size="56px" color="grey-5" />
+                  <div class="text-caption text-grey-6 q-mt-sm">No cover image</div>
+                </div>
+                <img
+                  v-else
+                  :src="coverPreview || form.cover"
+                  alt="Book cover preview"
+                  style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px"
+                />
+              </div>
+
+              <div class="q-gutter-md q-mt-md">
+                <div>
+                  <q-input
+                    v-model="form.cover"
+                    outlined
+                    dense
+                    label="Cover Image URL"
+                    type="url"
+                    placeholder="https://..."
+                    @update:model-value="handleCoverUrlChange"
+                  />
+                </div>
+                <div class="text-center text-grey-7 text-caption">or</div>
+                <q-file
+                  ref="fileInputRef"
+                  v-model="coverFile"
+                  outlined
+                  dense
+                  label="Upload Image"
+                  accept="image/*"
+                  max-file-size="5242880"
+                  @update:model-value="handleCoverFileChange"
+                />
+              </div>
             </div>
-            <div class="col-md-6">
-              <q-input v-model="form.genre" label="Genre" />
-              <q-select v-model="form.status" :options="statusOptions" label="Status" required />
-              <q-select
-                v-model="form.visibility"
-                :options="visibilityOptions"
-                label="Visibility"
-                required
-              />
+
+            <!-- Form Fields -->
+            <div class="col-12 col-md-8">
+              <div class="row q-col-gutter-md">
+                <div class="col-12">
+                  <q-input
+                    v-model="form.title"
+                    outlined
+                    dense
+                    label="Title *"
+                    required
+                    :rules="[(val) => !!val || 'Title is required']"
+                  />
+                </div>
+                <div class="col-12 col-sm-6">
+                  <q-input
+                    v-model="form.author"
+                    outlined
+                    dense
+                    label="Author *"
+                    required
+                    :rules="[(val) => !!val || 'Author is required']"
+                  />
+                </div>
+                <div class="col-12 col-sm-6">
+                  <q-input v-model="form.series" outlined dense label="Series" />
+                </div>
+                <div class="col-12 col-sm-6">
+                  <q-input v-model="form.genre" outlined dense label="Genre" />
+                </div>
+                <div class="col-12 col-sm-6">
+                  <q-select
+                    v-model="form.status"
+                    :options="statusOptions"
+                    outlined
+                    dense
+                    label="Status *"
+                    required
+                    :rules="[(val) => !!val || 'Status is required']"
+                  />
+                </div>
+                <div class="col-12 col-sm-6">
+                  <q-select
+                    v-model="form.visibility"
+                    :options="visibilityOptions"
+                    outlined
+                    dense
+                    label="Visibility *"
+                    required
+                    :rules="[(val) => !!val || 'Visibility is required']"
+                  />
+                </div>
+                <div class="col-12">
+                  <q-input
+                    v-model="form.description"
+                    outlined
+                    label="Description"
+                    type="textarea"
+                    autogrow
+                  />
+                </div>
+              </div>
             </div>
           </div>
-          <q-input v-model="form.description" label="Description" type="textarea" autogrow />
         </q-form>
       </q-card-section>
-      <q-card-actions align="right" class="text-primary">
+
+      <q-separator />
+
+      <q-card-actions align="right" class="q-pa-md">
         <q-btn flat label="Cancel" v-close-popup />
-        <q-btn label="Save Book" color="primary" @click="saveBook" />
+        <q-btn label="Save Book" color="primary" unelevated @click="saveBook" />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -45,11 +147,18 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  prepopulate: {
+    type: Object,
+    default: null,
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'save'])
 
 const formRef = ref(null)
+const fileInputRef = ref(null)
+const coverFile = ref(null)
+const coverPreview = ref('')
 
 const statusOptions = [
   { label: 'In progress', value: 'in-progress' },
@@ -75,6 +184,21 @@ watch(
   (isOpen) => {
     if (isOpen) {
       resetForm()
+      if (props.prepopulate) {
+        Object.assign(form, {
+          title: props.prepopulate.title || '',
+          author: props.prepopulate.author || '',
+          series: props.prepopulate.series || '',
+          genre: props.prepopulate.genre || '',
+          status: props.prepopulate.status || 'in-progress',
+          visibility: props.prepopulate.visibility || 'private',
+          description: props.prepopulate.description || '',
+          cover: props.prepopulate.coverUrl || '',
+        })
+        if (props.prepopulate.coverUrl) {
+          coverPreview.value = props.prepopulate.coverUrl
+        }
+      }
     }
   },
 )
@@ -85,18 +209,54 @@ function createEmptyForm() {
     author: '',
     series: '',
     genre: '',
-    status: 'In-progress',
-    visibility: 'Private',
+    status: 'in-progress',
+    visibility: 'private',
     description: '',
+    cover: '',
   }
 }
 
 function resetForm() {
   Object.assign(form, createEmptyForm())
+  coverFile.value = null
+  coverPreview.value = ''
 }
 
 function closeDialog() {
   dialogModel.value = false
+}
+
+function handleCoverUrlChange() {
+  // URL validation happens on blur/submit through the URL input type
+  // Attempt to load preview when user stops typing
+  if (form.cover && isValidUrl(form.cover)) {
+    coverPreview.value = form.cover
+  } else {
+    coverPreview.value = ''
+  }
+}
+
+function handleCoverFileChange(file) {
+  if (!file) {
+    coverPreview.value = ''
+    return
+  }
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    coverPreview.value = e.target?.result || ''
+    form.cover = e.target?.result || ''
+  }
+  reader.readAsDataURL(file)
+}
+
+function isValidUrl(string) {
+  try {
+    new URL(string)
+    return true
+  } catch (_) {
+    return false
+  }
 }
 
 async function saveBook() {
@@ -115,6 +275,7 @@ async function saveBook() {
     status: form.status,
     visibility: form.visibility,
     description: form.description.trim(),
+    cover: form.cover || null,
     createdAt: now,
     updatedAt: now,
   })

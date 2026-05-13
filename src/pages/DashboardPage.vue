@@ -15,7 +15,7 @@
               size="sm"
               icon="add"
               label="New Book"
-              @click="newBookOpen = true"
+              @click="openNewBook"
             />
           </q-card-section>
           <q-separator />
@@ -35,13 +35,15 @@
       </div>
     </div>
 
-    <NewBookModal v-model="newBookOpen" @save="addBook" />
+    <GoogleBooksSearchModal v-model="googleBooksOpen" @select="onBookSelected" />
+    <NewBookModal v-model="newBookOpen" :prepopulate="prepopulatedBook" @save="addBook" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import GoogleBooksSearchModal from 'src/components/GoogleBooksSearchModal.vue'
 import NewBookModal from 'src/components/NewBookModal.vue'
 import BookGrid from 'src/components/BookGrid.vue'
 import BookSearch from 'src/components/BookSearch.vue'
@@ -60,6 +62,9 @@ const books = ref(
 )
 
 const searchQuery = ref('')
+const googleBooksOpen = ref(false)
+const newBookOpen = ref(false)
+const prepopulatedBook = ref(null)
 
 const filteredBooks = computed(() => {
   const q = String(searchQuery.value || '')
@@ -79,7 +84,15 @@ const recentEdits = defaultBooks.slice(0, 3).map((book) => ({
   label: `Recent edit: ${book.title}`,
 }))
 
-const newBookOpen = ref(false)
+function openNewBook() {
+  prepopulatedBook.value = null
+  googleBooksOpen.value = true
+}
+
+function onBookSelected(bookData) {
+  prepopulatedBook.value = bookData
+  newBookOpen.value = true
+}
 
 function openWorkspace(book) {
   if (!book?.id) {
@@ -101,7 +114,8 @@ function onQuickResumeSelect(item) {
 function addBook(book) {
   books.value.push({
     ...book,
-    cover: String(books.value.length + 1).padStart(2, '0'),
+    cover: book.cover || String(books.value.length + 1).padStart(2, '0'),
   })
+  prepopulatedBook.value = null
 }
 </script>
