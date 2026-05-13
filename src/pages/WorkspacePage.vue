@@ -6,7 +6,7 @@
           <q-card bordered flat>
             <q-card-section class="row items-center q-col-gutter-md q-pa-md q-pb-sm">
               <div class="col">
-                <div class="text-subtitle1 text-weight-medium">Entity List + Detail</div>
+                <div class="text-subtitle1 text-weight-medium">Threads</div>
               </div>
               <div class="col-auto" style="min-width: 200px">
                 <q-input
@@ -28,6 +28,23 @@
                   label="Filter Entity"
                 />
               </div>
+              <div class="col-auto">
+                <div class="row q-gutter-sm justify-end">
+                  <q-btn
+                    color="primary"
+                    icon="person_add"
+                    label="Character"
+                    @click="openCharacterModal()"
+                  />
+                  <q-btn color="primary" icon="event" label="Event" @click="openEventModal()" />
+                  <q-btn
+                    color="primary"
+                    icon="place"
+                    label="Location"
+                    @click="openLocationModal()"
+                  />
+                </div>
+              </div>
             </q-card-section>
             <q-separator />
             <q-card-section class="q-pa-none">
@@ -45,6 +62,7 @@
                     class="q-pa-sm"
                     :entity="selectedEntity?.entity"
                     :type="selectedEntity?.type"
+                    @edit="onEntityEdit"
                   />
                 </div>
               </div>
@@ -62,6 +80,31 @@
         </div>
       </div>
     </div>
+
+    <CharacterModal
+      v-model="characterModalOpen"
+      :book-id="selectedBookId"
+      :entity="characterDraft"
+      @save="saveCharacter"
+    />
+
+    <EventModal
+      v-model="eventModalOpen"
+      :book-id="selectedBookId"
+      :entity="eventDraft"
+      :character-options="characterOptions"
+      :setting-options="settingOptions"
+      @save="saveEvent"
+    />
+
+    <LocationModal
+      v-model="locationModalOpen"
+      :book-id="selectedBookId"
+      :entity="locationDraft"
+      :character-options="characterOptions"
+      :parent-setting-options="parentSettingOptions"
+      @save="saveLocation"
+    />
   </div>
 </template>
 
@@ -71,6 +114,9 @@ import { useRoute, useRouter } from 'vue-router'
 import ItemSelectionList from 'src/components/ItemSelectionList.vue'
 import EntityDetailView from 'src/components/details/EntityDetailView.vue'
 import QuickLinksCard from 'src/components/QuickLinksCard.vue'
+import CharacterModal from 'src/components/CharacterModal.vue'
+import EventModal from 'src/components/EventModal.vue'
+import LocationModal from 'src/components/LocationModal.vue'
 import { useBookLibraryStore } from 'src/stores/bookLibrary'
 import { useBookWorkspaceStore } from 'src/stores/bookWorkspace'
 import { createMockLibraryData, getMockWorkspaceData } from 'src/data/mockLibraryData'
@@ -105,6 +151,27 @@ const selectedBookId = computed({
 const selectedEntityType = ref('all')
 const searchEntityText = ref('')
 const selectedEntity = ref(null)
+const workspaceData = ref(null)
+const characterModalOpen = ref(false)
+const eventModalOpen = ref(false)
+const locationModalOpen = ref(false)
+const characterDraft = ref(null)
+const eventDraft = ref(null)
+const locationDraft = ref(null)
+
+function cloneWorkspaceData(workspace) {
+  if (!workspace) {
+    return null
+  }
+
+  return globalThis.structuredClone
+    ? globalThis.structuredClone(workspace)
+    : JSON.parse(JSON.stringify(workspace))
+}
+
+function cloneEntity(entity) {
+  return entity ? cloneWorkspaceData(entity) : null
+}
 
 watch(
   bookOptions,
@@ -121,14 +188,150 @@ watch(
   { immediate: true },
 )
 
-const selectedWorkspace = computed(() => {
-  const bookId = selectedBookId.value || bookOptions.value[0]?.id || null
-  if (!bookId) {
-    return null
+watch(
+  selectedBookId,
+  (bookId) => {
+    const resolvedBookId = bookId || bookOptions.value[0]?.id || mockBooks[0]?.id || null
+    workspaceData.value = cloneWorkspaceData(
+      resolvedBookId ? getMockWorkspaceData(resolvedBookId) : null,
+    )
+  },
+  { immediate: true },
+)
+
+const selectedWorkspace = computed(() => workspaceData.value)
+
+const characterOptions = computed(() =>
+  (selectedWorkspace.value?.characters || []).map((character) => ({
+    label: character.name,
+    value: character.id,
+  })),
+)
+
+const settingOptions = computed(() =>
+  (selectedWorkspace.value?.settings || []).map((setting) => ({
+    label: setting.name,
+    value: setting.id,
+  })),
+)
+
+const parentSettingOptions = computed(() => {
+  const excludedId = locationDraft.value?.id || null
+  return (selectedWorkspace.value?.settings || [])
+    .filter((setting) => setting.id !== excludedId)
+    .map((setting) => ({ label: setting.name, value: setting.id }))
+})
+
+function setSelectedEntry(entity, type) {
+  if (!entity) {
+    selectedEntity.value = null
+    return
   }
 
-  return getMockWorkspaceData(bookId) || getMockWorkspaceData(mockBooks[0]?.id)
-})
+  selectedEntityType.value =
+    type === 'character'
+      ? 'characters'
+      : type === 'event'
+        ? 'events'
+        : type === 'setting'
+          ? 'settings'
+          : selectedEntityType.value
+
+  selectedEntity.value = {
+    id: entity.id,
+    label: type === 'character' ? entity.name : type === 'event' ? entity.title : entity.name,
+    type,
+    icon:
+      type === 'character'
+        ? getIconForType('character')
+        : type === 'event'
+          ? getIconForType('event')
+          : getIconForType('setting'),
+    entity,
+  }
+}
+
+function openCharacterModal(entity = null) {
+  characterDraft.value = cloneEntity(entity)
+  characterModalOpen.value = true
+}
+
+function openEventModal(entity = null) {
+  eventDraft.value = cloneEntity(entity)
+  eventModalOpen.value = true
+}
+
+function openLocationModal(entity = null) {
+  locationDraft.value = cloneEntity(entity)
+  locationModalOpen.value = true
+}
+
+function onEntityEdit() {
+  const entity = selectedEntity.value?.entity
+  if (!entity) {
+    return
+  }
+
+  if (selectedEntity.value?.type === 'character') {
+    openCharacterModal(entity)
+  } else if (selectedEntity.value?.type === 'event') {
+    openEventModal(entity)
+  } else if (selectedEntity.value?.type === 'setting') {
+    openLocationModal(entity)
+  }
+}
+
+function saveCharacter(character) {
+  if (!workspaceData.value) {
+    return
+  }
+
+  const characters = [...(workspaceData.value.characters || [])]
+  const index = characters.findIndex((item) => item.id === character.id)
+  if (index === -1) {
+    characters.push(character)
+  } else {
+    characters[index] = character
+  }
+
+  workspaceData.value = { ...workspaceData.value, characters }
+  setSelectedEntry(character, 'character')
+}
+
+function saveEvent(event) {
+  if (!workspaceData.value) {
+    return
+  }
+
+  const events = [...(workspaceData.value.events || [])]
+  const index = events.findIndex((item) => item.id === event.id)
+  if (index === -1) {
+    events.push(event)
+  } else {
+    events[index] = event
+  }
+
+  events.sort((left, right) => (left.sequenceOrder ?? 0) - (right.sequenceOrder ?? 0))
+  workspaceData.value = { ...workspaceData.value, events }
+  setSelectedEntry(event, 'event')
+}
+
+function saveLocation(setting) {
+  if (!workspaceData.value) {
+    return
+  }
+
+  const settings = [...(workspaceData.value.settings || [])]
+  const index = settings.findIndex((item) => item.id === setting.id)
+  if (index === -1) {
+    settings.push(setting)
+  } else {
+    settings[index] = setting
+  }
+
+  workspaceData.value = { ...workspaceData.value, settings }
+  setSelectedEntry(setting, 'setting')
+}
 
 function getEntityCollection(workspace, type) {
   if (!workspace) {

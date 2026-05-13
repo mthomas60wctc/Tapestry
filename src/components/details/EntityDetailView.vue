@@ -2,7 +2,15 @@
   <div>
     <div v-if="!entity" class="q-pa-md text-grey-7">Select an item to view details.</div>
     <div v-else class="entity-detail-wrapper">
-      <q-btn icon="edit" flat dense size="sm" class="entity-detail-edit-btn" />
+      <q-btn
+        v-if="['character', 'event', 'setting'].includes(resolvedType)"
+        icon="edit"
+        flat
+        dense
+        size="sm"
+        class="entity-detail-edit-btn"
+        @click="emit('edit')"
+      />
       <BookDetailView v-if="resolvedType === 'book'" :book="entity" />
       <CharacterDetailView v-else-if="resolvedType === 'character'" :character="entity" />
       <EventDetailView v-else-if="resolvedType === 'event'" :event="entity" />
@@ -28,6 +36,8 @@ const props = defineProps({
   entity: { type: Object, default: null },
   type: { type: String, default: '' },
 })
+
+const emit = defineEmits(['edit'])
 
 const resolvedType = computed(() => {
   if (props.type) {
